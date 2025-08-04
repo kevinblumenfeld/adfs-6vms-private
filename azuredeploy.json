@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "location": {
@@ -155,21 +155,21 @@
       "metadata": {
         "description": "The vm size of the Domain Controllers"
       },
-      "defaultValue": "Standard_DS2_V2"
+      "defaultValue": "Standard_D2s_v5"
     },
     "adfsVMsSize": {
       "type": "string",
       "metadata": {
         "description": "The vm size of the ADFS servers"
       },
-      "defaultValue": "Standard_DS2_V2"
+      "defaultValue": "Standard_D2s_v5"
     },
     "wapVMsSize": {
       "type": "string",
       "metadata": {
         "description": "The vm size of the WAP servers"
       },
-      "defaultValue": "Standard_DS2_v2"
+      "defaultValue": "Standard_D2s_v5"
     },
     "adminUsername": {
       "type": "string",
@@ -242,7 +242,7 @@
     {
       "name": "storageAccountDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -265,7 +265,7 @@
     {
       "name": "publicIpAddressesDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -288,7 +288,7 @@
     {
       "name": "availabilitySetsDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -308,7 +308,7 @@
     {
       "name": "virtualNetworkDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "dependsOn": [
         "Microsoft.Resources/deployments/nsgDeployment"
       ],
@@ -340,7 +340,7 @@
     {
       "name": "loadBalancerDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "dependsOn": [
         "Microsoft.Resources/deployments/virtualNetworkDeployment",
         "Microsoft.Resources/deployments/publicIpAddressesDeployment"
@@ -385,7 +385,7 @@
     {
       "name": "nicsDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "dependsOn": [
         "Microsoft.Resources/deployments/virtualNetworkDeployment",
         "Microsoft.Resources/deployments/loadBalancerDeployment",
@@ -445,7 +445,7 @@
     {
       "name": "nsgDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "properties": {
         "mode": "Incremental",
         "templateLink": {
@@ -468,7 +468,7 @@
     {
       "name": "addcVmsDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "dependsOn": [
         "Microsoft.Resources/deployments/nicsDeployment"
       ],
@@ -509,7 +509,7 @@
     {
       "name": "adfsVmsDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "dependsOn": [
         "Microsoft.Resources/deployments/nicsDeployment"
       ],
@@ -550,7 +550,7 @@
     {
       "name": "wapVmsDeployment",
       "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2015-01-01",
+      "apiVersion": "2022-09-01",
       "dependsOn": [
         "Microsoft.Resources/deployments/nicsDeployment"
       ],

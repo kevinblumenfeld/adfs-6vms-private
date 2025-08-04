@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "location": {
@@ -30,7 +30,7 @@
   "resources": [
     {
       "comments": "ADFS Load Balancer",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-05-01",
       "name": "[parameters('loadBalancerNames')[0]]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[parameters('location')]",
@@ -89,7 +89,7 @@
     },
     {
       "comments": "WAP Load Balancer",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-05-01",
       "name": "[parameters('loadBalancerNames')[1]]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[parameters('location')]",
@@ -180,6 +180,5 @@
       "value": "[resourceId('Microsoft.Network/loadBalancers',parameters('loadBalancerNames')[1])]",
       "type": "string"
     }
-
   }
 }
