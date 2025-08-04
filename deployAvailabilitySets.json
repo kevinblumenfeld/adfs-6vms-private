@@ -15,6 +15,9 @@
       "name": "[parameters('availabilitySetNames')[copyIndex()]]",
       "apiVersion": "2023-03-01",
       "location": "[parameters('location')]",
+      "sku": {
+        "name": "Aligned"
+      },
       "copy": {
         "name": "avsetCopy",
         "count": 3
