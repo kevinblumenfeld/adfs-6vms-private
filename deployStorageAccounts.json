@@ -30,26 +30,41 @@
       "name": "[concat(parameters('storageAccountNamePrefix'),'1')]",
       "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('storageAccountType')]"
+      },
+      "kind": "StorageV2",
       "properties": {
-        "accountType": "[parameters('storageAccountType')]"
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2"
       }
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[concat(parameters('storageAccountNamePrefix'),'2')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('storageAccountType')]"
+      },
+      "kind": "StorageV2",
       "properties": {
-        "accountType": "[parameters('storageAccountType')]"
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2"
       }
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[concat(parameters('storageAccountNamePrefix'),'3')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-01-01",
       "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
       "properties": {
-        "accountType": "Standard_LRS"
+        "supportsHttpsTrafficOnly": true,
+        "minimumTlsVersion": "TLS1_2"
       }
     }
   ]
