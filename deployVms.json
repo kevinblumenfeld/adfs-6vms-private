@@ -17,9 +17,6 @@
     "vmSize": {
       "type": "string"
     },
-    "availabilitySetName": {
-      "type": "string"
-    },
     "vmCount": {
       "type": "int"
     },
