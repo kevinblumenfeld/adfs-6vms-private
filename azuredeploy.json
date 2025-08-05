@@ -198,12 +198,6 @@
     "natGatewayName": "adfs-natgw",
     "natGatewayPublicIpName": "natgw-pip",
     "publicIPAddressType": "Static",
-    "deployAvailabilitySetsUrl": "[concat(variables('baseUrl'),'/deployAvailabilitySets.json')]",
-    "availabilitySetNames": [
-      "addc-as",
-      "adfs-as",
-      "wap-as"
-    ],
     "deployVnetURL": "[concat(variables('baseUrl'),'/vnet-',parameters('virtualNetworkUsage'),'.json')]",
     "subnets": [
       {
@@ -352,26 +346,6 @@
       }
     },
     {
-      "name": "availabilitySetsDeployment",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('deployAvailabilitySetsUrl')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "availabilitySetNames": {
-            "value": "[variables('availabilitySetNames')]"
-          }
-        }
-      }
-    },
-    {
       "name": "virtualNetworkDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
@@ -455,8 +429,7 @@
       "apiVersion": "2022-09-01",
       "dependsOn": [
         "Microsoft.Resources/deployments/virtualNetworkDeployment",
-        "Microsoft.Resources/deployments/loadBalancerDeployment",
-        "Microsoft.Resources/deployments/availabilitySetsDeployment"
+        "Microsoft.Resources/deployments/loadBalancerDeployment"
       ],
       "properties": {
         "mode": "Incremental",
@@ -561,9 +534,6 @@
           "vmSize": {
             "value": "[parameters('addcVMsSize')]"
           },
-          "availabilitySetName": {
-            "value": "[variables('availabilitySetNames')[0]]"
-          },
           "vmCount": {
             "value": 2
           },
@@ -602,9 +572,6 @@
           "vmSize": {
             "value": "[parameters('adfsVMsSize')]"
           },
-          "availabilitySetName": {
-            "value": "[variables('availabilitySetNames')[1]]"
-          },
           "vmCount": {
             "value": 2
           },
@@ -642,9 +609,6 @@
           },
           "vmSize": {
             "value": "[parameters('wapVMsSize')]"
-          },
-          "availabilitySetName": {
-            "value": "[variables('availabilitySetNames')[2]]"
           },
           "vmCount": {
             "value": 2
