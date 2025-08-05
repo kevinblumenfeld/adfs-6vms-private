@@ -19,9 +19,6 @@
     },
     "wapBeAddressPoolID": {
       "type": "string"
-    },
-    "wapRDPNATRuleIDs": {
-      "type": "array"
     }
   },
   "resources": [
@@ -139,11 +136,6 @@
                 {
                   "id": "[parameters('wapBEAddressPoolID')]"
                 }
-              ],
-              "loadBalancerInboundNatRules": [
-                {
-                  "id": "[parameters('wapRDPNATRuleIDs')[0]]"
-                }
               ]
             }
           }
@@ -169,11 +161,6 @@
               "loadBalancerBackendAddressPools": [
                 {
                   "id": "[parameters('wapBEAddressPoolID')]"
-                }
-              ],
-              "loadBalancerInboundNatRules": [
-                {
-                  "id": "[parameters('wapRDPNATRuleIDs')[1]]"
                 }
               ]
             }

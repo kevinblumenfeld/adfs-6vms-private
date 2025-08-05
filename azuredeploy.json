@@ -229,10 +229,6 @@
     ],
     "lbfe": "lbfe",
     "lbbe": "lbbe",
-    "rdpNats": [
-      "rdpWap01",
-      "rdpWap02"
-    ],
     "lbPublicIpResourceIds": [
       "[resourceId(concat('Microsoft.Network','/','publicIPAddresses'),variables('publicIpName'))]"
     ],
@@ -405,9 +401,6 @@
           "lbbe": {
             "value": "[variables('lbbe')]"
           },
-          "rdpNats": {
-            "value": "[variables('rdpNats')]"
-          },
           "lbPublicIpResourceIds": {
             "value": "[variables('lbPublicIpResourceIds')]"
           },
@@ -469,12 +462,6 @@
           },
           "adfsBEAddressPoolID": {
             "value": "[concat(reference('loadBalancerDeployment').outputs.adfslbID.value,'/backendAddressPools/',variables('lbbe'))]"
-          },
-          "wapRDPNATRuleIDs": {
-            "value": [
-              "[concat(reference('loadBalancerDeployment').outputs.waplbID.value,'/inboundNatRules/',variables('rdpNats')[0])]",
-              "[concat(reference('loadBalancerDeployment').outputs.waplbID.value,'/inboundNatRules/',variables('rdpNats')[1])]"
-            ]
           },
           "wapBeAddressPoolID": {
             "value": "[concat(reference('loadBalancerDeployment').outputs.waplbID.value,'/backendAddressPools/',variables('lbbe'))]"

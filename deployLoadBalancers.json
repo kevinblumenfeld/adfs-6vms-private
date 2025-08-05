@@ -14,9 +14,6 @@
     "lbbe": {
       "type": "string"
     },
-    "rdpNats": {
-      "type": "array"
-    },
     "lbPublicIpResourceIds": {
       "type": "array"
     },
@@ -133,32 +130,6 @@
               "probe": {
                 "id": "[concat(resourceid('Microsoft.Network/loadBalancers',parameters('loadBalancerNames')[1]), '/probes/ilbWapProbe')]"
               }
-            }
-          }
-        ],
-        "inboundNatRules": [
-          {
-            "name": "[parameters('rdpNats')[0]]",
-            "properties": {
-              "frontendIPConfiguration": {
-                "id": "[concat(resourceid('Microsoft.Network/loadBalancers',parameters('loadBalancerNames')[1]), '/frontendIPConfigurations/',parameters('lbfe'))]"
-              },
-              "protocol": "Tcp",
-              "frontendPort": 3389,
-              "backendPort": 3389,
-              "enableFloatingIP": false
-            }
-          },
-          {
-            "name": "[parameters('rdpNats')[1]]",
-            "properties": {
-              "frontendIPConfiguration": {
-                "id": "[concat(resourceid('Microsoft.Network/loadBalancers',parameters('loadBalancerNames')[1]), '/frontendIPConfigurations/',parameters('lbfe'))]"
-              },
-              "protocol": "Tcp",
-              "frontendPort": 3390,
-              "backendPort": 3389,
-              "enableFloatingIP": false
             }
           }
         ],
