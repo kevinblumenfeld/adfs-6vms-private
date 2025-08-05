@@ -18,6 +18,9 @@
       "type": "Microsoft.Network/publicIPAddresses",
       "name": "[parameters('publicIpName')]",
       "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
       "properties": {
         "publicIPAllocationMethod": "[parameters('publicIPAddressType')]"
       }

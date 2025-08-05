@@ -29,11 +29,14 @@
   },
   "resources": [
     {
-      "comments": "ADFS Load Balancer",
+      "comments": "ADFS Load Balancer - Standard SKU",
       "apiVersion": "2023-05-01",
       "name": "[parameters('loadBalancerNames')[0]]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
       "properties": {
         "frontendIPConfigurations": [
           {
@@ -79,7 +82,7 @@
             "properties": {
               "protocol": "Http",
               "port": 80,
-              "intervalInSeconds": 10,
+              "intervalInSeconds": 15,
               "numberOfProbes": 2,
               "requestPath": "/adfs/probe/"
             }
@@ -88,11 +91,14 @@
       }
     },
     {
-      "comments": "WAP Load Balancer",
+      "comments": "WAP Load Balancer - Standard SKU",
       "apiVersion": "2023-05-01",
       "name": "[parameters('loadBalancerNames')[1]]",
       "type": "Microsoft.Network/loadBalancers",
       "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
       "properties": {
         "frontendIPConfigurations": [
           {
@@ -160,11 +166,10 @@
           {
             "name": "ilbWapProbe",
             "properties": {
-              "protocol": "Http",
+              "protocol": "Tcp",
               "port": 80,
-              "intervalInSeconds": 10,
-              "numberOfProbes": 2,
-              "requestPath": "/adfs/probe/"
+              "intervalInSeconds": 15,
+              "numberOfProbes": 2
             }
           }
         ]

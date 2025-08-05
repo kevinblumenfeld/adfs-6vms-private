@@ -61,6 +61,20 @@
                         }
                     },
                     {
+                        "name": "AllowADCommunicationFromADFS",
+                        "properties": {
+                            "description": "Allow ADFS servers to communicate with Domain Controllers - WIDE OPEN",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "10.0.2.0/24",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 350,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
                         "name": "AllowRdpOut",
                         "properties": {
                             "protocol": "Tcp",
@@ -70,6 +84,20 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 1200,
+                            "direction": "Outbound"
+                        }
+                    },
+                    {
+                        "name": "AllowADCommunicationToADFS",
+                        "properties": {
+                            "description": "Allow communication to ADFS servers from Domain Controllers - WIDE OPEN",
+                            "protocol": "*",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "10.0.2.0/24",
+                            "access": "Allow",
+                            "priority": 1250,
                             "direction": "Outbound"
                         }
                     }
@@ -125,6 +153,20 @@
                         }
                     },
                     {
+                        "name": "AllowADFStoWAP",
+                        "properties": {
+                            "description": "Allow ADFS servers to respond to WAP servers",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "443",
+                            "sourceAddressPrefix": "10.0.2.0/24",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 450,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
                         "name": "AllowHttpsOut",
                         "properties": {
                             "protocol": "Tcp",
@@ -160,6 +202,34 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 1200,
+                            "direction": "Outbound"
+                        }
+                    },
+                    {
+                        "name": "AllowWAPtoADFS",
+                        "properties": {
+                            "description": "Allow WAP servers to communicate with ADFS servers",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "443",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "10.0.2.0/24",
+                            "access": "Allow",
+                            "priority": 1300,
+                            "direction": "Outbound"
+                        }
+                    },
+                    {
+                        "name": "AllowWAPtoADFSManagement",
+                        "properties": {
+                            "description": "Allow WAP management communication with ADFS",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "808",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "10.0.2.0/24",
+                            "access": "Allow",
+                            "priority": 1310,
                             "direction": "Outbound"
                         }
                     }
