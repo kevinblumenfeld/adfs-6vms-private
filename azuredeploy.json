@@ -191,7 +191,9 @@
     "storageAccountNamePrefix": "[concat(uniquestring(resourceGroup().id),'sa')]",
     "deployStorageAccountsUrl": "[concat(variables('baseUrl'),'/deployStorageAccounts.json')]",
     "deployPublicIPsUrl": "[concat(variables('baseUrl'),'/deployPublicIPs.json')]",
+    "deployJumpBoxUrl": "[concat(variables('baseUrl'),'/deployJumpBox.json')]",
     "publicIpName": "wapLbPip",
+    "jumpBoxPublicIpName": "jumpBox-pip",
     "publicIPAddressType": "Static",
     "deployAvailabilitySetsUrl": "[concat(variables('baseUrl'),'/deployAvailabilitySets.json')]",
     "availabilitySetNames": [
@@ -281,6 +283,38 @@
           },
           "publicIPAddressType": {
             "value": "[variables('publicIPAddressType')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "jumpBoxDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/virtualNetworkDeployment"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('deployJumpBoxUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "jumpBoxPublicIpName": {
+            "value": "[variables('jumpBoxPublicIpName')]"
+          },
+          "subnetId": {
+            "value": "[concat(reference('virtualNetworkDeployment').outputs.vnetId.value,'/subnets/',parameters('internalSubnetName'))]"
           }
         }
       }

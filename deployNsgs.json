@@ -22,11 +22,12 @@
             "properties": {
                 "securityRules": [
                     {
-                        "name": "AllowRDP",
+                        "name": "AllowAllInbound",
                         "properties": {
-                            "protocol": "Tcp",
+                            "description": "Allow all inbound traffic for lab environment",
+                            "protocol": "*",
                             "sourcePortRange": "*",
-                            "destinationPortRange": "3389",
+                            "destinationPortRange": "*",
                             "sourceAddressPrefix": "*",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
@@ -35,69 +36,16 @@
                         }
                     },
                     {
-                        "name": "AllowHTTPSFromDMZ",
+                        "name": "AllowAllOutbound",
                         "properties": {
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "443",
-                            "sourceAddressPrefix": "[parameters('dmzSubnetAddressRange')]",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 200,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "AllowAzureLoadBalancerInBound",
-                        "properties": {
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "*",
-                            "sourceAddressPrefix": "AzureLoadBalancer",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 300,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "AllowADCommunicationFromADFS",
-                        "properties": {
-                            "description": "Allow ADFS servers to communicate with Domain Controllers - WIDE OPEN",
-                            "protocol": "*",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "*",
-                            "sourceAddressPrefix": "10.0.2.0/24",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 350,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "AllowRdpOut",
-                        "properties": {
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "3389",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 1200,
-                            "direction": "Outbound"
-                        }
-                    },
-                    {
-                        "name": "AllowADCommunicationToADFS",
-                        "properties": {
-                            "description": "Allow communication to ADFS servers from Domain Controllers - WIDE OPEN",
+                            "description": "Allow all outbound traffic for lab environment",
                             "protocol": "*",
                             "sourcePortRange": "*",
                             "destinationPortRange": "*",
                             "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "10.0.2.0/24",
+                            "destinationAddressPrefix": "*",
                             "access": "Allow",
-                            "priority": 1250,
+                            "priority": 100,
                             "direction": "Outbound"
                         }
                     }
@@ -113,11 +61,12 @@
             "properties": {
                 "securityRules": [
                     {
-                        "name": "AllowRDP",
+                        "name": "AllowAllInbound",
                         "properties": {
-                            "protocol": "Tcp",
+                            "description": "Allow all inbound traffic for lab environment",
+                            "protocol": "*",
                             "sourcePortRange": "*",
-                            "destinationPortRange": "3389",
+                            "destinationPortRange": "*",
                             "sourceAddressPrefix": "*",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
@@ -126,110 +75,16 @@
                         }
                     },
                     {
-                        "name": "AllowHttpsFromAnywhere",
+                        "name": "AllowAllOutbound",
                         "properties": {
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "443",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 200,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "AllowAzureLoadBalancerInBound",
-                        "properties": {
-                            "description": "Allow inbound traffic from azure load balancer",
-                            "direction": "Inbound",
-                            "priority": 400,
+                            "description": "Allow all outbound traffic for lab environment",
                             "protocol": "*",
-                            "sourceAddressPrefix": "AzureLoadBalancer",
                             "sourcePortRange": "*",
-                            "destinationAddressPrefix": "*",
                             "destinationPortRange": "*",
-                            "access": "Allow"
-                        }
-                    },
-                    {
-                        "name": "AllowADFStoWAP",
-                        "properties": {
-                            "description": "Allow ADFS servers to respond to WAP servers",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "443",
-                            "sourceAddressPrefix": "10.0.2.0/24",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 450,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "AllowHttpsOut",
-                        "properties": {
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "443",
                             "sourceAddressPrefix": "*",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
-                            "priority": 1000,
-                            "direction": "Outbound"
-                        }
-                    },
-                    {
-                        "name": "AllowHttpOutALB",
-                        "properties": {
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "80",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "AzureLoadBalancer",
-                            "access": "Allow",
-                            "priority": 1100,
-                            "direction": "Outbound"
-                        }
-                    },
-                    {
-                        "name": "AllowRdpOut",
-                        "properties": {
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "3389",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 1200,
-                            "direction": "Outbound"
-                        }
-                    },
-                    {
-                        "name": "AllowWAPtoADFS",
-                        "properties": {
-                            "description": "Allow WAP servers to communicate with ADFS servers",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "443",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "10.0.2.0/24",
-                            "access": "Allow",
-                            "priority": 1300,
-                            "direction": "Outbound"
-                        }
-                    },
-                    {
-                        "name": "AllowWAPtoADFSManagement",
-                        "properties": {
-                            "description": "Allow WAP management communication with ADFS",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "808",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "10.0.2.0/24",
-                            "access": "Allow",
-                            "priority": 1310,
+                            "priority": 100,
                             "direction": "Outbound"
                         }
                     }
