@@ -1,0 +1,153 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "adminUsername": {
+            "type": "string"
+        },
+        "adminPassword": {
+            "type": "securestring"
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_B2s"
+        },
+        "subnetId": {
+            "type": "string"
+        },
+        "jumpBoxPublicIpName": {
+            "type": "string",
+            "defaultValue": "jumpBoxPip"
+        }
+    },
+    "variables": {
+        "jumpBoxNicName": "jumpBox-nic",
+        "jumpBoxVmName": "jumpBox",
+        "jumpBoxNsgName": "jumpBox-nsg"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2023-05-01",
+            "name": "[parameters('jumpBoxPublicIpName')]",
+            "location": "[parameters('location')]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "Static",
+                "dnsSettings": {
+                    "domainNameLabel": "[concat('jumpbox-', uniqueString(resourceGroup().id))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2023-05-01",
+            "name": "[variables('jumpBoxNsgName')]",
+            "location": "[parameters('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "AllowRDP",
+                        "properties": {
+                            "priority": 1000,
+                            "protocol": "Tcp",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*",
+                            "destinationPortRange": "3389"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2023-05-01",
+            "name": "[variables('jumpBoxNicName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('jumpBoxPublicIpName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpBoxNsgName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "10.0.0.10",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('jumpBoxPublicIpName'))]"
+                            },
+                            "subnet": {
+                                "id": "[parameters('subnetId')]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('jumpBoxNsgName'))]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2023-03-01",
+            "name": "[variables('jumpBoxVmName')]",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', variables('jumpBoxNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('jumpBoxVmName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2022-datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "[concat(variables('jumpBoxVmName'), '-osdisk')]",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        }
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('jumpBoxNicName'))]"
+                        }
+                    ]
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "jumpBoxPublicIP": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('jumpBoxPublicIpName'))).ipAddress]"
+        },
+        "jumpBoxFQDN": {
+            "type": "string",
+            "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('jumpBoxPublicIpName'))).dnsSettings.fqdn]"
+        }
+    }
+}
