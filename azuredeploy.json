@@ -192,8 +192,11 @@
     "deployStorageAccountsUrl": "[concat(variables('baseUrl'),'/deployStorageAccounts.json')]",
     "deployPublicIPsUrl": "[concat(variables('baseUrl'),'/deployPublicIPs.json')]",
     "deployJumpBoxUrl": "[concat(variables('baseUrl'),'/deployJumpBox.json')]",
+    "deployNatGatewayUrl": "[concat(variables('baseUrl'),'/deployNatGateway.json')]",
     "publicIpName": "wapLbPip",
     "jumpBoxPublicIpName": "jumpBox-pip",
+    "natGatewayName": "adfs-natgw",
+    "natGatewayPublicIpName": "natgw-pip",
     "publicIPAddressType": "Static",
     "deployAvailabilitySetsUrl": "[concat(variables('baseUrl'),'/deployAvailabilitySets.json')]",
     "availabilitySetNames": [
@@ -209,6 +212,9 @@
           "addressPrefix": "[parameters('internalSubnetAddressRange')]",
           "networkSecurityGroup": {
             "id": "[resourceId('Microsoft.Network/networkSecurityGroups','Internal-sn-nsg')]"
+          },
+          "natGateway": {
+            "id": "[resourceId('Microsoft.Network/natGateways', variables('natGatewayName'))]"
           }
         }
       },
@@ -288,6 +294,32 @@
       }
     },
     {
+      "name": "natGatewayDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('deployNatGatewayUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "natGatewayName": {
+            "value": "[variables('natGatewayName')]"
+          },
+          "natGatewayPublicIpName": {
+            "value": "[variables('natGatewayPublicIpName')]"
+          },
+          "publicIPAddressType": {
+            "value": "[variables('publicIPAddressType')]"
+          }
+        }
+      }
+    },
+    {
       "name": "jumpBoxDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
@@ -344,7 +376,8 @@
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "dependsOn": [
-        "Microsoft.Resources/deployments/nsgDeployment"
+        "Microsoft.Resources/deployments/nsgDeployment",
+        "Microsoft.Resources/deployments/natGatewayDeployment"
       ],
       "properties": {
         "mode": "Incremental",
