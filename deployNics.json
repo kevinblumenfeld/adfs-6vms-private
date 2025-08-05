@@ -51,7 +51,7 @@
       "name": "[parameters('nicNames')[1]]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[parameters('location')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-05-01",
       "properties": {
         "ipConfigurations": [
           {
@@ -72,7 +72,7 @@
       "name": "[parameters('nicNames')[2]]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[parameters('location')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-05-01",
       "properties": {
         "ipConfigurations": [
           {
@@ -98,7 +98,7 @@
       "name": "[parameters('nicNames')[3]]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[parameters('location')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-05-01",
       "properties": {
         "ipConfigurations": [
           {
@@ -124,7 +124,7 @@
       "name": "[parameters('nicNames')[4]]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[parameters('location')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-05-01",
       "properties": {
         "ipConfigurations": [
           {
@@ -150,7 +150,7 @@
       "name": "[parameters('nicNames')[5]]",
       "type": "Microsoft.Network/networkInterfaces",
       "location": "[parameters('location')]",
-      "apiVersion": "2015-06-15",
+      "apiVersion": "2023-05-01",
       "properties": {
         "ipConfigurations": [
           {
