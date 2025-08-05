@@ -115,32 +115,6 @@
             "name": "[parameters('lbbe')]"
           }
         ],
-        "inboundNatRules": [
-          {
-            "name": "[parameters('rdpNats')[0]]",
-            "properties": {
-              "frontendIPConfiguration": {
-                "id": "[concat(resourceid('Microsoft.Network/loadBalancers',parameters('loadBalancerNames')[1]), '/frontendIPConfigurations/',parameters('lbfe'))]"
-              },
-              "protocol": "tcp",
-              "frontendPort": 5000,
-              "backendPort": 3389,
-              "enableFloatingIP": false
-            }
-          },
-          {
-            "name": "[parameters('rdpNats')[1]]",
-            "properties": {
-              "frontendIPConfiguration": {
-                "id": "[concat(resourceid('Microsoft.Network/loadBalancers',parameters('loadBalancerNames')[1]), '/frontendIPConfigurations/',parameters('lbfe'))]"
-              },
-              "protocol": "tcp",
-              "frontendPort": 5001,
-              "backendPort": 3389,
-              "enableFloatingIP": false
-            }
-          }
-        ],
         "loadBalancingRules": [
           {
             "name": "http-443",
