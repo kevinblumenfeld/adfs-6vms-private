@@ -138,7 +138,7 @@
             "name": "ilbWapProbe",
             "properties": {
               "protocol": "Tcp",
-              "port": 80,
+              "port": 443,
               "intervalInSeconds": 15,
               "numberOfProbes": 2
             }
