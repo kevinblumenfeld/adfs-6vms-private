@@ -192,15 +192,12 @@
     "deployStorageAccountsUrl": "[concat(variables('baseUrl'),'/deployStorageAccounts.json')]",
     "deployPublicIPsUrl": "[concat(variables('baseUrl'),'/deployPublicIPs.json')]",
     "deployJumpBoxUrl": "[concat(variables('baseUrl'),'/deployJumpBox.json')]",
+    "deployNatGatewayUrl": "[concat(variables('baseUrl'),'/deployNatGateway.json')]",
     "publicIpName": "wapLbPip",
     "jumpBoxPublicIpName": "jumpBox-pip",
+    "natGatewayName": "adfs-natgw",
+    "natGatewayPublicIpName": "natgw-pip",
     "publicIPAddressType": "Static",
-    "deployAvailabilitySetsUrl": "[concat(variables('baseUrl'),'/deployAvailabilitySets.json')]",
-    "availabilitySetNames": [
-      "addc-as",
-      "adfs-as",
-      "wap-as"
-    ],
     "deployVnetURL": "[concat(variables('baseUrl'),'/vnet-',parameters('virtualNetworkUsage'),'.json')]",
     "subnets": [
       {
@@ -209,6 +206,9 @@
           "addressPrefix": "[parameters('internalSubnetAddressRange')]",
           "networkSecurityGroup": {
             "id": "[resourceId('Microsoft.Network/networkSecurityGroups','Internal-sn-nsg')]"
+          },
+          "natGateway": {
+            "id": "[resourceId('Microsoft.Network/natGateways', variables('natGatewayName'))]"
           }
         }
       },
@@ -229,10 +229,6 @@
     ],
     "lbfe": "lbfe",
     "lbbe": "lbbe",
-    "rdpNats": [
-      "rdpWap01",
-      "rdpWap02"
-    ],
     "lbPublicIpResourceIds": [
       "[resourceId(concat('Microsoft.Network','/','publicIPAddresses'),variables('publicIpName'))]"
     ],
@@ -288,6 +284,32 @@
       }
     },
     {
+      "name": "natGatewayDeployment",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('deployNatGatewayUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "natGatewayName": {
+            "value": "[variables('natGatewayName')]"
+          },
+          "natGatewayPublicIpName": {
+            "value": "[variables('natGatewayPublicIpName')]"
+          },
+          "publicIPAddressType": {
+            "value": "[variables('publicIPAddressType')]"
+          }
+        }
+      }
+    },
+    {
       "name": "jumpBoxDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
@@ -320,31 +342,12 @@
       }
     },
     {
-      "name": "availabilitySetsDeployment",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
-      "properties": {
-        "mode": "Incremental",
-        "templateLink": {
-          "uri": "[variables('deployAvailabilitySetsUrl')]",
-          "contentVersion": "1.0.0.0"
-        },
-        "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "availabilitySetNames": {
-            "value": "[variables('availabilitySetNames')]"
-          }
-        }
-      }
-    },
-    {
       "name": "virtualNetworkDeployment",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
       "dependsOn": [
-        "Microsoft.Resources/deployments/nsgDeployment"
+        "Microsoft.Resources/deployments/nsgDeployment",
+        "Microsoft.Resources/deployments/natGatewayDeployment"
       ],
       "properties": {
         "mode": "Incremental",
@@ -398,9 +401,6 @@
           "lbbe": {
             "value": "[variables('lbbe')]"
           },
-          "rdpNats": {
-            "value": "[variables('rdpNats')]"
-          },
           "lbPublicIpResourceIds": {
             "value": "[variables('lbPublicIpResourceIds')]"
           },
@@ -422,8 +422,7 @@
       "apiVersion": "2022-09-01",
       "dependsOn": [
         "Microsoft.Resources/deployments/virtualNetworkDeployment",
-        "Microsoft.Resources/deployments/loadBalancerDeployment",
-        "Microsoft.Resources/deployments/availabilitySetsDeployment"
+        "Microsoft.Resources/deployments/loadBalancerDeployment"
       ],
       "properties": {
         "mode": "Incremental",
@@ -463,12 +462,6 @@
           },
           "adfsBEAddressPoolID": {
             "value": "[concat(reference('loadBalancerDeployment').outputs.adfslbID.value,'/backendAddressPools/',variables('lbbe'))]"
-          },
-          "wapRDPNATRuleIDs": {
-            "value": [
-              "[concat(reference('loadBalancerDeployment').outputs.waplbID.value,'/inboundNatRules/',variables('rdpNats')[0])]",
-              "[concat(reference('loadBalancerDeployment').outputs.waplbID.value,'/inboundNatRules/',variables('rdpNats')[1])]"
-            ]
           },
           "wapBeAddressPoolID": {
             "value": "[concat(reference('loadBalancerDeployment').outputs.waplbID.value,'/backendAddressPools/',variables('lbbe'))]"
@@ -528,9 +521,6 @@
           "vmSize": {
             "value": "[parameters('addcVMsSize')]"
           },
-          "availabilitySetName": {
-            "value": "[variables('availabilitySetNames')[0]]"
-          },
           "vmCount": {
             "value": 2
           },
@@ -569,9 +559,6 @@
           "vmSize": {
             "value": "[parameters('adfsVMsSize')]"
           },
-          "availabilitySetName": {
-            "value": "[variables('availabilitySetNames')[1]]"
-          },
           "vmCount": {
             "value": 2
           },
@@ -609,9 +596,6 @@
           },
           "vmSize": {
             "value": "[parameters('wapVMsSize')]"
-          },
-          "availabilitySetName": {
-            "value": "[variables('availabilitySetNames')[2]]"
           },
           "vmCount": {
             "value": 2

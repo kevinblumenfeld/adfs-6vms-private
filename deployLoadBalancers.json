@@ -14,9 +14,6 @@
     "lbbe": {
       "type": "string"
     },
-    "rdpNats": {
-      "type": "array"
-    },
     "lbPublicIpResourceIds": {
       "type": "array"
     },
