@@ -1,3 +1,5 @@
 adfsBuild.ps1
 ADFS-Lab.rdg
 RDCMan.zip
+BuildServers.ps1
+BuildServers.md
