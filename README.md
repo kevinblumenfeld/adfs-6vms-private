@@ -11,7 +11,7 @@
 - This affects: AD forest, DNS records, ADFS federation service name, certificates
 
 ### 2. 🏷️ Resource Group Configuration
-- **Find & Replace**: KevinLab → KevinLab (across all files)
+- **Find & Replace**: KevinLab → YourResourceGroupName (across all files)
 
 ### 3. 🔐 SSL Certificate Setup
 
