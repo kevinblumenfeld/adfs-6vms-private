@@ -84,7 +84,7 @@ New-AzResourceGroupDeployment -ResourceGroupName "KevinLab" -TemplateUri "https:
 | **Server** | **Role** | **Subnet** | **Private IP** | **Purpose** |
 |------------|----------|------------|----------------|-------------|
 | 🖥️ **JumpBox2** | Jump Box | Internal | 10.0.0.11 | Secondary jump box with public IP |
-| 🔗 **EntraConnect** | Azure AD Connect | Internal | 10.0.0.20 | Hybrid identity sync |
+| 🔗 **EntraConnect** | Entra Connect | Internal | 10.0.0.20 | Hybrid identity sync |
 
 ### Configure Additional Servers:
 
