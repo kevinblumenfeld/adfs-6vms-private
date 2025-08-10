@@ -1,0 +1,242 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Administrator account of the new VMs"
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The password for the Administrator account of the new VMs"
+            }
+        },
+        "existingVirtualNetworkName": {
+            "type": "string",
+            "defaultValue": "adfs-infra-vnet",
+            "metadata": {
+                "description": "Name of the existing virtual network"
+            }
+        },
+        "existingResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the existing resource group containing the VNET"
+            }
+        },
+        "jumpBox2PrivateIP": {
+            "type": "string",
+            "defaultValue": "10.0.0.11",
+            "metadata": {
+                "description": "Private IP address for JumpBox2"
+            }
+        },
+        "entraConnectPrivateIP": {
+            "type": "string",
+            "defaultValue": "10.0.0.20",
+            "metadata": {
+                "description": "Private IP address for EntraConnect server"
+            }
+        }
+    },
+    "variables": {
+        "storageAccountNamePrefix": "[concat(uniquestring(resourceGroup().id),'additional')]",
+        "publicIpName2": "jumpBox2-pip",
+        "publicIPAddressType": "Static",
+        "vmSize": "Standard_D2s_v3",
+        "subnetName": "Internal-sn",
+        "vnetID": "[resourceId(parameters('existingResourceGroupName'), 'Microsoft.Network/virtualNetworks', parameters('existingVirtualNetworkName'))]",
+        "subnetRef": "[concat(variables('vnetID'),'/subnets/', variables('subnetName'))]"
+    },
+    "resources": [
+        {
+            "apiVersion": "2023-01-01",
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[concat(variables('storageAccountNamePrefix'), '1')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "StorageV2"
+        },
+        {
+            "apiVersion": "2023-01-01",
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[concat(variables('storageAccountNamePrefix'), '2')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard_LRS"
+            },
+            "kind": "StorageV2"
+        },
+        {
+            "apiVersion": "2023-05-01",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicIpName2')]",
+            "location": "[resourceGroup().location]",
+            "sku": {
+                "name": "Standard"
+            },
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]"
+            }
+        },
+        {
+            "apiVersion": "2023-05-01",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "jumpBox2-nic",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIpName2'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[parameters('jumpBox2PrivateIP')]",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName2'))]"
+                            },
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2023-05-01",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "entraConnect-nic",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[parameters('entraConnectPrivateIP')]",
+                            "subnet": {
+                                "id": "[variables('subnetRef')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2023-03-01",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "jumpBox2",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountNamePrefix'), '1')]",
+                "[resourceId('Microsoft.Network/networkInterfaces', 'jumpBox2-nic')]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "jumpBox2",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2022-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "jumpBox2-osdisk",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"
+                        }
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', 'jumpBox2-nic')]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountNamePrefix'), '1'), '2022-09-01').primaryEndpoints.blob]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "2023-03-01",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "entraConnect",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountNamePrefix'), '2')]",
+                "[resourceId('Microsoft.Network/networkInterfaces', 'entraConnect-nic')]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[variables('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "entraConnect",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2022-Datacenter",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "name": "entraConnect-osdisk",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "Standard_LRS"
+                        }
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', 'entraConnect-nic')]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountNamePrefix'), '2'), '2022-09-01').primaryEndpoints.blob]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "jumpBox2PublicIP": {
+            "type": "string",
+            "value": "[reference(variables('publicIpName2')).ipAddress]"
+        },
+        "entraConnectPrivateIP": {
+            "type": "string",
+            "value": "[parameters('entraConnectPrivateIP')]"
+        }
+    }
+}

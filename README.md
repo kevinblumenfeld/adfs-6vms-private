@@ -10,7 +10,10 @@
 - **Find & Replace**: domain.cc → yourdomain.com
 - This affects: AD forest, DNS records, ADFS federation service name, certificates
 
-### 2. 🔐 SSL Certificate Setup
+### 2. 🏷️ Resource Group Configuration
+- **Find & Replace**: KevinLab → KevinLab (across all files)
+
+### 3. 🔐 SSL Certificate Setup
 
 **For Cloudflare DNS:**
 - Get your API token from: https://dash.cloudflare.com/profile/api-tokens
@@ -25,30 +28,30 @@
 - **Email Address**: Replace your-email@domain.com with your actual email
 - **Certificate Password**: Replace YourCertificatePassword! with a strong password
 
-### 3. 🌍 DNS Configuration
+### 4. 🌍 DNS Configuration
 **⚠️ Complete this AFTER Azure deployment (see deployment section below):**
 1. Get the WAP load balancer public IP:
    ```powershell
-   Get-AzPublicIpAddress -ResourceGroupName "YourResourceGroup" | Where-Object {$_.Name -like "*wap*"}
+   Get-AzPublicIpAddress -ResourceGroupName "KevinLab" | Where-Object {$_.Name -like "*wap*"}
    ```
 2. Create DNS A record in your public DNS: **adfs.domain.cc** → **[Public IP from step 1]**
 3. Wait 5-10 minutes for DNS propagation
 
-### 4. 🔧 Network Settings
+### 5. 🔧 Network Settings
 - **Default IP ranges**: 
   - Internal subnet: 10.0.0.0/24
   - DMZ subnet: 10.0.1.0/24
 - Modify IP addresses in ARM template parameters if needed
 
-### 5. 📋 Certificate Thumbprint Process
+### 6. 📋 Certificate Thumbprint Process
 **IMPORTANT**: When you run the ADFS1 configuration (Step 3 below), you'll see this output:
 
 Write-Host "Thumbprint: $($cert.Thumbprint)" -ForegroundColor Green
 
 **Record that thumbprint value and use it to replace REPLACE_WITH_YOUR_CERTIFICATE_THUMBPRINT in all the remaining server configurations (ADFS2, WAP1, WAP2).**
 
-### 6. 🖥️ Remote Desktop Management
-1. Get jumpbox IP: `Get-AzPublicIpAddress -ResourceGroupName "kevinlab2" | Where-Object {$_.Name -like "*jumpBox*"}`
+### 7. 🖥️ Remote Desktop Management
+1. Get jumpbox IP: `Get-AzPublicIpAddress -ResourceGroupName "KevinLab" | Where-Object {$_.Name -like "*jumpBox*"}`
 2. RDP to jumpbox using the IP above
 3. Copy RDCMan.zip to jumpbox, unzip, then File > Open > adfs-lab.rdg
 
@@ -60,25 +63,63 @@ Deploy the infrastructure using PowerShell:
 
 ```powershell
 # Create resource group
-New-AzResourceGroup -Name "KevinLab2" -Location "East US"
+New-AzResourceGroup -Name "KevinLab" -Location "East US"
 
-New-AzResourceGroupDeployment -ResourceGroupName "KevinLab2" -TemplateUri "https://raw.githubusercontent.com/kevinblumenfeld/adfs-6vms-private/main/azuredeploy.json" -Location "East US" -TemplateParameterObject @{ adminUsername = 'kevin'; adminPassword = 'YourAdminPassword!' }
+New-AzResourceGroupDeployment -ResourceGroupName "KevinLab" -TemplateUri "https://raw.githubusercontent.com/kevinblumenfeld/adfs-6vms-private/main/azuredeploy.json" -Location "East US" -TemplateParameterObject @{ adminUsername = 'kevin'; adminPassword = 'YourAdminPassword!' }
 ```
 
 ---
 
-## 🏗️ Infrastructure Overview
+## 🔧 Additional Servers (Optional)
 
-This deployment creates a complete 6-VM ADFS infrastructure:
+Deploy these servers AFTER the main 6-server infrastructure is complete:
+
+```powershell
+# Deploy additional servers to existing infrastructure
+New-AzResourceGroupDeployment -ResourceGroupName "KevinLab" -TemplateUri "https://raw.githubusercontent.com/kevinblumenfeld/adfs-6vms-private/main/deployAdditionalServers.json" -TemplateParameterObject @{ adminUsername = 'kevin'; adminPassword = 'YourAdminPassword!'; existingResourceGroupName = 'KevinLab' }
+```
+
+### Additional Infrastructure:
 
 | **Server** | **Role** | **Subnet** | **Private IP** | **Purpose** |
 |------------|----------|------------|----------------|-------------|
-| 🖥️ **DC1** | Domain Controller | Internal | 10.0.0.4 | Primary DC, DNS |
-| 🖥️ **DC2** | Domain Controller | Internal | 10.0.0.5 | Secondary DC, DNS backup |
-| 🔐 **ADFS1** | ADFS Server | Internal | 10.0.0.10 | Federation services |
-| 🔐 **ADFS2** | ADFS Server | Internal | 10.0.0.11 | Federation services (HA) |
-| 🌐 **WAP1** | Web Application Proxy | DMZ | 10.0.1.4 | External ADFS proxy |
-| 🌐 **WAP2** | Web Application Proxy | DMZ | 10.0.1.5 | External ADFS proxy (HA) |
+| 🖥️ **JumpBox2** | Jump Box | Internal | 10.0.0.11 | Secondary jump box with public IP |
+| 🔗 **EntraConnect** | Azure AD Connect | Internal | 10.0.0.20 | Hybrid identity sync |
+
+### Configure Additional Servers:
+
+**After deployment, configure each additional server:**
+
+#### JumpBox2 Configuration:
+```powershell
+# Set DNS to point to DC1 and join domain
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 10.0.0.101
+Add-Computer -DomainName "domain.cc" -Restart
+```
+
+#### EntraConnect Configuration:
+```powershell
+# Set DNS to point to DC1 and join domain
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses 10.0.0.101
+Add-Computer -DomainName "domain.cc" -Restart
+```
+
+
+---
+
+## 🏗️ Complete Infrastructure Overview
+
+Main 6-server + jumpbox deployment creates:
+
+| **Server** | **Role** | **Subnet** | **Private IP** | **Purpose** |
+|------------|----------|------------|----------------|-------------|
+| 🖥️ **JumpBox** | Jump Box | Internal | 10.0.0.10 | Primary jump box with public IP |
+| 🖥️ **DC1** | Domain Controller | Internal | 10.0.0.101 | Primary DC, DNS |
+| 🖥️ **DC2** | Domain Controller | Internal | 10.0.0.102 | Secondary DC, DNS backup |
+| 🔐 **ADFS1** | ADFS Server | Internal | 10.0.0.201 | Federation services |
+| 🔐 **ADFS2** | ADFS Server | Internal | 10.0.0.202 | Federation services (HA) |
+| 🌐 **WAP1** | Web Application Proxy | DMZ | 10.0.1.101 | External ADFS proxy |
+| 🌐 **WAP2** | Web Application Proxy | DMZ | 10.0.1.102 | External ADFS proxy (HA) |
 
 ---
 
@@ -110,7 +151,7 @@ $forestSplat = @{
 Install-ADDSForest @forestSplat
 
 # Add DNS record for ADFS (points to internal load balancer)
-Add-DnsServerResourceRecordA -Name "adfs" -ZoneName "domain.cc" -IPv4Address 10.0.0.201
+Add-DnsServerResourceRecordA -Name "adfs" -ZoneName "domain.cc" -IPv4Address 10.0.0.200
 
 # Create ADFS service account
 New-ADUser -Name "adfssvc" -UserPrincipalName "adfssvc@domain.cc" -AccountPassword (Read-Host "Enter ADFS Service Account Password" -AsSecureString) -Enabled $true
