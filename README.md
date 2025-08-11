@@ -347,62 +347,7 @@ After completing all server configurations and DNS setup:
 
 ---
 
-## � ADFS Health Analysis & Reporting
-
-> **Get comprehensive ADFS environment analysis with one command!**
-
-### 🚀 **Quick Health Check (Recommended)**
-
-Run this **one command** on any ADFS server for instant analysis:
-
-```powershell
-iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/adfs-6vms-private/main/Get-ADFSReport.ps1')
-#
-```
-
-### 📋 **What Gets Analyzed:**
-
-Service health, certificates, endpoints, trust relationships, security settings, modern auth, performance, and configuration.
-
-> **📤 EXPORTS**: All Relying Party Trusts with complete configuration including claim rules, endpoints, and security settings.
-
-### 📈 **Report Outputs:**
-
-Creates **3 files** in Documents folder: JSON (technical analysis), CSV (Excel-ready data), Executive Summary (management report).
-
-### 🎯 **Alternative Usage Methods:**
-
-**Method 1: Direct from GitHub (Easiest)**
-```powershell
-iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/adfs-6vms-private/main/Get-ADFSReport.ps1')
-#
-```
-
-**Method 2: Copy-Paste**
-1. Copy the entire script content from [Get-ADFSReport.ps1](./Get-ADFSReport.ps1)
-2. Paste into PowerShell (run as administrator)
-3. Run: `Get-ADFSReport`
-
-**Method 3: Save and Run**
-1. Download and save as `Get-ADFSReport.ps1`
-2. Run: `.\Get-ADFSReport.ps1`
-
-### 📋 **Advanced Options:**
-
-```powershell
-# Run with performance counters (takes longer but more detailed)
-.\Get-ADFSReport.ps1 -IncludePerformanceCounters
-
-# Analyze 30 days of logs with sanitized output  
-.\Get-ADFSReport.ps1 -EventLogDays 30 -SanitizeOutput
-
-# Custom output path
-.\Get-ADFSReport.ps1 -OutputPath "C:\Reports\ADFS_Health.json"
-```
-
----
-
-## �🔧 Troubleshooting
+## 🔧 Troubleshooting
 
 ### Common Issues:
 
@@ -880,5 +825,42 @@ Write-Log "# Remove federation: Update-MgDomain -DomainId '$DomainName' -Authent
 
 Write-Log "Federation setup completed successfully!" "SUCCESS"
 ```
+---
 
+### 🚀 **ADFS Report**
+
+### 📋 **What Gets Analyzed:**
+
+Service health, certificates, endpoints, trust relationships, security settings, modern auth, performance, and configuration.
+
+> **📤 EXPORTS**: All Relying Party Trusts with complete configuration including claim rules, endpoints, and security settings.
+
+### 📈 **Report Outputs:**
+
+Creates **3 files** in Documents folder: JSON (technical analysis), CSV (Excel-ready data), Executive Summary (management report).
+
+### 🎯 **Usage Methods:**
+
+**Method 1: Direct from GitHub (Recommended)**
+```powershell
+iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/adfs-6vms-private/main/Get-ADFSReport.ps1')
+#
+```
+1. Login as Domain Admin account
+2. Open PowerShell as Administrator
+3. Copy-paste the above code block, the report will be generated automatically in your Documents folder.
+
+**Method 2: Copy-Paste**
+1. Login as Domain Admin account
+2. Copy the entire script content from [Get-ADFSReport.ps1](./Get-ADFSReport.ps1)
+3. Open PowerShell as Administrator
+4. Paste script and run: `Get-ADFSReport`
+
+**Method 3: Save and Run**
+1. Login as Domain Admin account
+2. Download and save as `Get-ADFSReport.ps1`
+3. Open PowerShell as Administrator
+4. Run: `.\Get-ADFSReport.ps1`
+
+---
 **Credit**: Based on Paulo Marques templates
