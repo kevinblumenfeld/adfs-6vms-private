@@ -380,7 +380,7 @@ iex (irm 'https://raw.githubusercontent.com/kevinblumenfeld/adfs-6vms-private/ma
 
 **Method 2: Copy-Paste**
 1. Copy the entire script content from [Get-ADFSReport.ps1](./Get-ADFSReport.ps1)
-2. Paste into PowerShell ISE or VS Code  
+2. Paste into PowerShell (run as administrator)
 3. Run: `Get-ADFSReport`
 
 **Method 3: Save and Run**
