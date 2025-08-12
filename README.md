@@ -477,14 +477,14 @@ Write-Log "=== STEP 1: PREREQUISITES VALIDATION ===" "INFO"
 # Validate PowerShell version
 if ($PSVersionTable.PSVersion.Major -lt 5) {
     Write-Log "PowerShell 5.1 or higher is required. Current version: $($PSVersionTable.PSVersion)" "ERROR"
-    exit 1
+    return
 }
 Write-Log "PowerShell version validated: $($PSVersionTable.PSVersion)" "SUCCESS"
 
 # Validate Administrator privileges
 if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Log "Script must be run as Administrator" "ERROR"
-    exit 1
+    return
 }
 Write-Log "Administrator privileges confirmed" "SUCCESS"
 
@@ -493,12 +493,12 @@ try {
     $ADFSService = Get-Service -Name "adfssrv" -ErrorAction Stop
     if ($ADFSService.Status -ne "Running") {
         Write-Log "ADFS service is not running. Current status: $($ADFSService.Status)" "ERROR"
-        exit 1
+        return
     }
     Write-Log "ADFS service is running" "SUCCESS"
 } catch {
     Write-Log "Cannot access ADFS service. Ensure you're running on the ADFS server. Error: $($_.Exception.Message)" "ERROR"
-    exit 1
+    return
 }
 
 # STEP 2: EXTRACT ADFS CONFIGURATION
@@ -510,7 +510,7 @@ try {
     $TokenSigningCert = Get-AdfsCertificate -CertificateType "Token-Signing" | Where-Object {$_.IsPrimary -eq $true}
     if (-not $TokenSigningCert) {
         Write-Log "No primary token signing certificate found" "ERROR"
-        exit 1
+        return
     }
     
     # Validate certificate expiration
@@ -523,7 +523,7 @@ try {
             $continue = Read-Host "Certificate expires soon. Continue? (y/N)"
             if ($continue -ne "y" -and $continue -ne "Y") {
                 Write-Log "Operation cancelled due to certificate expiry warning" "INFO"
-                exit 0
+                return
             }
         }
     }
@@ -535,7 +535,7 @@ try {
     
 } catch {
     Write-Log "Failed to extract token signing certificate: $($_.Exception.Message)" "ERROR"
-    exit 1
+    return
 }
 
 # Build ADFS URIs
@@ -587,7 +587,7 @@ foreach ($module in $RequiredModules) {
             Write-Log "Successfully installed $module" "SUCCESS"
         } catch {
             Write-Log "Failed to install $module`: $($_.Exception.Message)" "ERROR"
-            exit 1
+            return
         }
     } else {
         Write-Log "Module $module is already installed" "INFO"
@@ -611,7 +611,7 @@ try {
     
 } catch {
     Write-Log "Failed to connect to Microsoft Graph: $($_.Exception.Message)" "ERROR"
-    exit 1
+    return
 }
 
 # STEP 4: DOMAIN VALIDATION
@@ -625,7 +625,7 @@ try {
         Write-Log "Domain $DomainName is not verified in Entra ID" "ERROR"
         Write-Log "You must verify domain ownership before setting up federation" "ERROR"
         Disconnect-MgGraph
-        exit 1
+        return
     }
     
     Write-Log "Domain validation successful:" "SUCCESS"
@@ -637,7 +637,7 @@ try {
 } catch {
     Write-Log "Domain $DomainName not found in Entra ID: $($_.Exception.Message)" "ERROR"
     Disconnect-MgGraph
-    exit 1
+    return
 }
 
 # Check for existing federation configuration
@@ -655,7 +655,7 @@ try {
             if ($confirm -ne "y" -and $confirm -ne "Y") {
                 Write-Log "Operation cancelled by user" "INFO"
                 Disconnect-MgGraph
-                exit 0
+                return
             }
         }
         Write-Log "Will update existing federation configuration" "INFO"
@@ -748,7 +748,7 @@ try {
     }
     
     Disconnect-MgGraph
-    exit 1
+    return
 }
 
 # STEP 7: VERIFY FEDERATION CONFIGURATION
