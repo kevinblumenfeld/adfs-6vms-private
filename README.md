@@ -407,11 +407,14 @@ function Set-ADFSFederation {
     This function automatically configures ADFS federation with Microsoft Entra ID,
     including certificate management and validation.
     
+    IMPORTANT: Run this function from your primary ADFS server (ADFS1) after completing
+    all infrastructure setup and server configuration steps.
+    
     .PARAMETER DomainName
-    The domain name to federate (default: domain.cc)
+    The domain name to federate (required)
     
     .PARAMETER ADFSHostname
-    The ADFS server hostname (default: adfs.domain.cc)
+    The ADFS server hostname (required)
     
     .PARAMETER MfaBehavior
     How to handle MFA from federated IdP (default: acceptIfMfaDoneByFederatedIdp)
@@ -423,21 +426,18 @@ function Set-ADFSFederation {
     Forces execution without prompts
     
     .EXAMPLE
-    Set-ADFSFederation
-    
-    .EXAMPLE
     Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com"
     
     .EXAMPLE
-    Set-ADFSFederation -WhatIf
+    Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -WhatIf
     #>
     
     param(
-        [Parameter(Mandatory=$false)]
-        [string]$DomainName = "domain.cc",
+        [Parameter(Mandatory=$true)]
+        [string]$DomainName,
         
-        [Parameter(Mandatory=$false)]
-        [string]$ADFSHostname = "adfs.domain.cc",
+        [Parameter(Mandatory=$true)]
+        [string]$ADFSHostname,
         
         [Parameter(Mandatory=$false)]
         [ValidateSet("acceptIfMfaDoneByFederatedIdp", "rejectMfaByFederatedIdp", "enforceMfaByFederatedIdp")]
@@ -860,10 +860,9 @@ Write-Log "Federation setup completed successfully!" "SUCCESS"
 
 # USAGE EXAMPLES:
 # ===============
-# Set-ADFSFederation                                    # Use default domain.cc
-# Set-ADFSFederation -WhatIf                           # Preview changes
 # Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com"
-# Set-ADFSFederation -Force                            # Skip prompts
+# Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -WhatIf
+# Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com" -Force
 ```
 
 **How to use this function:**
@@ -871,16 +870,14 @@ Write-Log "Federation setup completed successfully!" "SUCCESS"
 1. **Copy the entire function** above into PowerShell
 2. **Call the function** using any of these examples:
    ```powershell
-   # Basic usage with defaults
-   Set-ADFSFederation
-   
-   # Preview what would happen
-   Set-ADFSFederation -WhatIf
-   
-   # Use custom domain
+   # Basic usage (DomainName and ADFSHostname are required)
    Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com"
    
+   # Preview what would happen
+   Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -WhatIf
+   
    # Force execution without prompts
+   Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -Force
    Set-ADFSFederation -Force
    ```
 ---
