@@ -395,9 +395,6 @@ After completing all server configurations and DNS setup:
 # Domain: domain.cc
 # ADFS Server: adfs.domain.cc
 
-#Requires -Version 5.1
-#Requires -RunAsAdministrator
-
 function Set-ADFSFederation {
     <#
     .SYNOPSIS
@@ -709,7 +706,7 @@ if ($WhatIf) {
     }
     Write-Log "WHATIF MODE: No changes will be made" "WARNING"
     Disconnect-MgGraph
-    exit 0
+    return
 }
 
 try {
