@@ -416,6 +416,15 @@ function Set-ADFSFederation {
     .PARAMETER MfaBehavior
     How to handle MFA from federated IdP (default: acceptIfMfaDoneByFederatedIdp)
     
+    .PARAMETER ClientId
+    Azure AD App Registration Client ID for service principal authentication (optional)
+    
+    .PARAMETER ClientSecret
+    Azure AD App Registration Client Secret for service principal authentication (optional)
+    
+    .PARAMETER TenantId
+    Azure AD Tenant ID for service principal authentication (optional)
+    
     .PARAMETER WhatIf
     Shows what would be done without making changes
     
@@ -427,6 +436,9 @@ function Set-ADFSFederation {
     
     .EXAMPLE
     Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -WhatIf
+    
+    .EXAMPLE
+    Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com" -ClientId "your-client-id" -ClientSecret "your-client-secret" -TenantId "your-tenant-id"
     #>
     
     param(
@@ -439,6 +451,15 @@ function Set-ADFSFederation {
         [Parameter(Mandatory=$false)]
         [ValidateSet("acceptIfMfaDoneByFederatedIdp", "rejectMfaByFederatedIdp", "enforceMfaByFederatedIdp")]
         [string]$MfaBehavior = "acceptIfMfaDoneByFederatedIdp",
+        
+        [Parameter(Mandatory=$false)]
+        [string]$ClientId,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$ClientSecret,
+        
+        [Parameter(Mandatory=$false)]
+        [string]$TenantId,
         
         [Parameter(Mandatory=$false)]
         [switch]$WhatIf,
@@ -601,7 +622,17 @@ foreach ($module in $RequiredModules) {
 $RequiredScopes = @("Domain.ReadWrite.All", "Directory.ReadWrite.All")
 try {
     Write-Log "Connecting to Microsoft Graph with scopes: $($RequiredScopes -join ', ')" "INFO"
-    Connect-MgGraph -Scopes $RequiredScopes -NoWelcome -ErrorAction Stop
+    
+    # Use ClientId/Secret authentication if provided, otherwise use interactive
+    if ($ClientId -and $ClientSecret -and $TenantId) {
+        Write-Log "Using ClientId/ClientSecret authentication" "INFO"
+        $SecureSecret = ConvertTo-SecureString $ClientSecret -AsPlainText -Force
+        $ClientCredential = New-Object System.Management.Automation.PSCredential($ClientId, $SecureSecret)
+        Connect-MgGraph -TenantId $TenantId -ClientSecretCredential $ClientCredential -NoWelcome -ErrorAction Stop
+    } else {
+        Write-Log "Using interactive authentication" "INFO"
+        Connect-MgGraph -Scopes $RequiredScopes -NoWelcome -ErrorAction Stop
+    }
     
     $Context = Get-MgContext
     Write-Log "Successfully connected to Microsoft Graph" "SUCCESS"
