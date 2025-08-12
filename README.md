@@ -398,25 +398,57 @@ After completing all server configurations and DNS setup:
 #Requires -Version 5.1
 #Requires -RunAsAdministrator
 
-# SCRIPT CONFIGURATION
-# ====================
-param(
-    [Parameter(Mandatory=$false)]
-    [string]$DomainName = "domain.cc",
+function Set-ADFSFederation {
+    <#
+    .SYNOPSIS
+    Configures ADFS federation with Microsoft Entra ID
     
-    [Parameter(Mandatory=$false)]
-    [string]$ADFSHostname = "adfs.domain.cc",
+    .DESCRIPTION
+    This function automatically configures ADFS federation with Microsoft Entra ID,
+    including certificate management and validation.
     
-    [Parameter(Mandatory=$false)]
-    [ValidateSet("acceptIfMfaDoneByFederatedIdp", "rejectMfaByFederatedIdp", "enforceMfaByFederatedIdp")]
-    [string]$MfaBehavior = "acceptIfMfaDoneByFederatedIdp",
+    .PARAMETER DomainName
+    The domain name to federate (default: domain.cc)
     
-    [Parameter(Mandatory=$false)]
-    [switch]$WhatIf,
+    .PARAMETER ADFSHostname
+    The ADFS server hostname (default: adfs.domain.cc)
     
-    [Parameter(Mandatory=$false)]
-    [switch]$Force
-)
+    .PARAMETER MfaBehavior
+    How to handle MFA from federated IdP (default: acceptIfMfaDoneByFederatedIdp)
+    
+    .PARAMETER WhatIf
+    Shows what would be done without making changes
+    
+    .PARAMETER Force
+    Forces execution without prompts
+    
+    .EXAMPLE
+    Set-ADFSFederation
+    
+    .EXAMPLE
+    Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com"
+    
+    .EXAMPLE
+    Set-ADFSFederation -WhatIf
+    #>
+    
+    param(
+        [Parameter(Mandatory=$false)]
+        [string]$DomainName = "domain.cc",
+        
+        [Parameter(Mandatory=$false)]
+        [string]$ADFSHostname = "adfs.domain.cc",
+        
+        [Parameter(Mandatory=$false)]
+        [ValidateSet("acceptIfMfaDoneByFederatedIdp", "rejectMfaByFederatedIdp", "enforceMfaByFederatedIdp")]
+        [string]$MfaBehavior = "acceptIfMfaDoneByFederatedIdp",
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$WhatIf,
+        
+        [Parameter(Mandatory=$false)]
+        [switch]$Force
+    )
 
 # INITIALIZE LOGGING
 # ==================
@@ -824,7 +856,33 @@ Write-Log "# Check federation: Get-MgDomainFederationConfiguration -DomainId '$D
 Write-Log "# Remove federation: Update-MgDomain -DomainId '$DomainName' -AuthenticationType 'Managed'" "INFO"
 
 Write-Log "Federation setup completed successfully!" "SUCCESS"
+}
+
+# USAGE EXAMPLES:
+# ===============
+# Set-ADFSFederation                                    # Use default domain.cc
+# Set-ADFSFederation -WhatIf                           # Preview changes
+# Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com"
+# Set-ADFSFederation -Force                            # Skip prompts
 ```
+
+**How to use this function:**
+
+1. **Copy the entire function** above into PowerShell
+2. **Call the function** using any of these examples:
+   ```powershell
+   # Basic usage with defaults
+   Set-ADFSFederation
+   
+   # Preview what would happen
+   Set-ADFSFederation -WhatIf
+   
+   # Use custom domain
+   Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com"
+   
+   # Force execution without prompts
+   Set-ADFSFederation -Force
+   ```
 ---
 
 ### 🚀 **ADFS Report**
