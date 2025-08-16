@@ -381,76 +381,35 @@ After completing all server configurations and DNS setup:
 
 ---
 
-## 🚀 ADFS Federation Automation Script
+## 🚀 ADFS Federation Setup & Claim Rules
 
-**Optional**: After completing your ADFS infrastructure setup, use this PowerShell script to automatically configure federation with Microsoft Entra ID. This script handles the complete federation setup process including certificate management and validation.
+**Complete federation setup for ADFS with Entra ID/Microsoft 365**. This includes both the federation connection and essential claim rules for common scenarios.
 
-**When to use**: Run this script from your ADFS1 server after completing all the manual configuration steps above.
+**⏰ When to use**: After completing your ADFS infrastructure setup (all 6 servers configured), use this to establish federation with Entra ID and configure claim rules.
 
+---
+
+## 📋 Step-by-Step Federation Process
+
+### **Step 1: Basic Federation Setup** ⚡
+**⏰ When**: Run this FIRST after your ADFS infrastructure is complete and working  
+**📍 Where**: Run on your **ADFS1** server (primary ADFS server)  
+**👤 Who**: **Domain Admin** account (for ADFS commands) + **Entra ID permissions** (Domain.ReadWrite.All scope or Global Admin for Graph API)
+
+> **💡 Permission Options (Choose One):**
+> - **Option A (Recommended)**: Use Domain Admin account, authenticate to Graph with delegated permissions when prompted
+> - **Option B**: Use Domain Admin account that also has Global Admin role in Entra ID  
+> - **Option C**: Use Domain Admin account + Service Principal (ClientId/Secret) with Domain.ReadWrite.All permissions  
 
 ```powershell
-# ADFS FEDERATION SETUP FOR domain.CC - PRODUCTION READY
-# =========================================================
-# This script configures ADFS federation with Microsoft Entra ID
-# Domain: domain.cc
-# ADFS Server: adfs.domain.cc
-
+# Essential Federation Setup Function - Simplified but Complete
 function Set-ADFSFederation {
-    <#
-    .SYNOPSIS
-    Configures ADFS federation with Microsoft Entra ID
-    
-    .DESCRIPTION
-    This function automatically configures ADFS federation with Microsoft Entra ID,
-    including certificate management and validation.
-    
-    IMPORTANT: Run this function from your primary ADFS server (ADFS1) after completing
-    all infrastructure setup and server configuration steps.
-    
-    .PARAMETER DomainName
-    The domain name to federate (required)
-    
-    .PARAMETER ADFSHostname
-    The ADFS server hostname (required)
-    
-    .PARAMETER MfaBehavior
-    How to handle MFA from federated IdP (default: acceptIfMfaDoneByFederatedIdp)
-    
-    .PARAMETER ClientId
-    Azure AD App Registration Client ID for service principal authentication (optional)
-    
-    .PARAMETER ClientSecret
-    Azure AD App Registration Client Secret for service principal authentication (optional)
-    
-    .PARAMETER TenantId
-    Azure AD Tenant ID for service principal authentication (optional)
-    
-    .PARAMETER WhatIf
-    Shows what would be done without making changes
-    
-    .PARAMETER Force
-    Forces execution without prompts
-    
-    .EXAMPLE
-    Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com"
-    
-    .EXAMPLE
-    Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -WhatIf
-    
-    .EXAMPLE
-    Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com" -ClientId "your-client-id" -ClientSecret "your-client-secret" -TenantId "your-tenant-id"
-    #>
-    
     param(
         [Parameter(Mandatory=$true)]
         [string]$DomainName,
         
         [Parameter(Mandatory=$true)]
         [string]$ADFSHostname,
-        
-        [Parameter(Mandatory=$false)]
-        [ValidateSet("acceptIfMfaDoneByFederatedIdp", "rejectMfaByFederatedIdp", "enforceMfaByFederatedIdp")]
-        [string]$MfaBehavior = "acceptIfMfaDoneByFederatedIdp",
         
         [Parameter(Mandatory=$false)]
         [string]$ClientId,
@@ -462,452 +421,254 @@ function Set-ADFSFederation {
         [string]$TenantId,
         
         [Parameter(Mandatory=$false)]
-        [switch]$WhatIf,
-        
-        [Parameter(Mandatory=$false)]
-        [switch]$Force
+        [switch]$WhatIf
     )
-
-# INITIALIZE LOGGING
-# ==================
-$LogFile = "ADFS_Federation_Setup_$(Get-Date -Format 'yyyyMMdd_HHmmss').log"
-function Write-Log {
-    param([string]$Message, [string]$Level = "INFO")
-    $Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-    $LogEntry = "[$Timestamp] [$Level] $Message"
-    Write-Host $LogEntry -ForegroundColor $(
-        switch($Level) {
-            "ERROR" { "Red" }
-            "WARNING" { "Yellow" }
-            "SUCCESS" { "Green" }
-            "INFO" { "Cyan" }
-            default { "White" }
+    
+    Write-Host "Setting up ADFS Federation for $DomainName..." -ForegroundColor Green
+    
+    # Install required modules
+    $modules = @("Microsoft.Graph.Authentication", "Microsoft.Graph.Identity.DirectoryManagement")
+    foreach ($module in $modules) {
+        if (-not (Get-Module -ListAvailable -Name $module)) {
+            Install-Module $module -Force -Scope CurrentUser -AllowClobber
         }
-    )
-    Add-Content -Path $LogFile -Value $LogEntry
-}
-
-Write-Log "Starting ADFS Federation Setup for $DomainName" "INFO"
-Write-Log "ADFS Server: $ADFSHostname" "INFO"
-Write-Log "Log file: $LogFile" "INFO"
-
-# STEP 1: PREREQUISITES VALIDATION
-# =================================
-Write-Log "=== STEP 1: PREREQUISITES VALIDATION ===" "INFO"
-
-# Validate PowerShell version
-if ($PSVersionTable.PSVersion.Major -lt 5) {
-    Write-Log "PowerShell 5.1 or higher is required. Current version: $($PSVersionTable.PSVersion)" "ERROR"
-    return
-}
-Write-Log "PowerShell version validated: $($PSVersionTable.PSVersion)" "SUCCESS"
-
-# Validate Administrator privileges
-if (-NOT ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Log "Script must be run as Administrator" "ERROR"
-    return
-}
-Write-Log "Administrator privileges confirmed" "SUCCESS"
-
-# Validate ADFS service is running
-try {
-    $ADFSService = Get-Service -Name "adfssrv" -ErrorAction Stop
-    if ($ADFSService.Status -ne "Running") {
-        Write-Log "ADFS service is not running. Current status: $($ADFSService.Status)" "ERROR"
-        return
-    }
-    Write-Log "ADFS service is running" "SUCCESS"
-} catch {
-    Write-Log "Cannot access ADFS service. Ensure you're running on the ADFS server. Error: $($_.Exception.Message)" "ERROR"
-    return
-}
-
-# STEP 2: EXTRACT ADFS CONFIGURATION
-# ===================================
-Write-Log "=== STEP 2: EXTRACT ADFS CONFIGURATION ===" "INFO"
-
-# Extract primary token signing certificate
-try {
-    $TokenSigningCert = Get-AdfsCertificate -CertificateType "Token-Signing" | Where-Object {$_.IsPrimary -eq $true}
-    if (-not $TokenSigningCert) {
-        Write-Log "No primary token signing certificate found" "ERROR"
-        return
+        Import-Module $module -Force
     }
     
-    # Validate certificate expiration
-    $ExpiryDate = $TokenSigningCert.Certificate.NotAfter
-    $DaysUntilExpiry = ($ExpiryDate - (Get-Date)).Days
+    # Get ADFS certificate
+    $cert = Get-AdfsCertificate -CertificateType "Token-Signing" | Where-Object {$_.IsPrimary -eq $true}
+    $certBase64 = [System.Convert]::ToBase64String($cert.Certificate.RawData)
     
-    if ($DaysUntilExpiry -lt 30) {
-        Write-Log "WARNING: Token signing certificate expires in $DaysUntilExpiry days ($ExpiryDate)" "WARNING"
-        if (-not $Force) {
-            $continue = Read-Host "Certificate expires soon. Continue? (y/N)"
-            if ($continue -ne "y" -and $continue -ne "Y") {
-                Write-Log "Operation cancelled due to certificate expiry warning" "INFO"
-                return
-            }
-        }
+    # Build federation configuration
+    $federationConfig = @{
+        DomainId = $DomainName
+        DisplayName = "$DomainName ADFS Federation"
+        IssuerUri = "http://$ADFSHostname/adfs/services/trust"
+        ActiveSignInUri = "https://$ADFSHostname/adfs/services/trust/2005/usernamemixed"
+        PassiveSignInUri = "https://$ADFSHostname/adfs/ls/"
+        SignOutUri = "https://$ADFSHostname/adfs/ls/?wa=wsignout1.0"
+        MetadataExchangeUri = "https://$ADFSHostname/adfs/services/trust/mex"
+        SigningCertificate = $certBase64
+        PreferredAuthenticationProtocol = "wsFed"
+        FederatedIdpMfaBehavior = "acceptIfMfaDoneByFederatedIdp"
     }
     
-    $CertificateBase64 = [System.Convert]::ToBase64String($TokenSigningCert.Certificate.RawData)
-    Write-Log "Primary token signing certificate extracted successfully" "SUCCESS"
-    Write-Log "Certificate expires: $ExpiryDate ($DaysUntilExpiry days)" "INFO"
-    Write-Log "Certificate thumbprint: $($TokenSigningCert.Certificate.Thumbprint)" "INFO"
-    
-} catch {
-    Write-Log "Failed to extract token signing certificate: $($_.Exception.Message)" "ERROR"
-    return
-}
-
-# Build ADFS URIs
-$ADFSConfig = @{
-    IssuerUri = "http://$ADFSHostname/adfs/services/trust"
-    ActiveSignInUri = "https://$ADFSHostname/adfs/services/trust/2005/usernamemixed"
-    PassiveSignInUri = "https://$ADFSHostname/adfs/ls/"
-    SignOutUri = "https://$ADFSHostname/adfs/ls/?wa=wsignout1.0"
-    MetadataExchangeUri = "https://$ADFSHostname/adfs/services/trust/mex"
-    SigningCertificate = $CertificateBase64
-}
-
-Write-Log "ADFS Configuration URLs built:" "INFO"
-foreach ($key in $ADFSConfig.Keys) {
-    if ($key -ne "SigningCertificate") {
-        Write-Log "  $key`: $($ADFSConfig[$key])" "INFO"
-    }
-}
-
-# Validate ADFS endpoints accessibility
-Write-Log "Validating ADFS endpoints accessibility..." "INFO"
-$EndpointsToTest = @($ADFSConfig.MetadataExchangeUri, $ADFSConfig.PassiveSignInUri)
-
-foreach ($endpoint in $EndpointsToTest) {
-    try {
-        $response = Invoke-WebRequest -Uri $endpoint -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
-        Write-Log "✓ $endpoint - Accessible (Status: $($response.StatusCode))" "SUCCESS"
-    } catch {
-        Write-Log "✗ $endpoint - Not accessible: $($_.Exception.Message)" "WARNING"
-        Write-Log "This may prevent federation from working properly" "WARNING"
-    }
-}
-
-# STEP 3: MICROSOFT GRAPH CONNECTION
-# ===================================
-Write-Log "=== STEP 3: MICROSOFT GRAPH CONNECTION ===" "INFO"
-
-# Install required modules
-$RequiredModules = @(
-    "Microsoft.Graph.Authentication",
-    "Microsoft.Graph.Identity.DirectoryManagement"
-)
-
-foreach ($module in $RequiredModules) {
-    if (-not (Get-Module -ListAvailable -Name $module)) {
-        Write-Log "Installing module: $module" "INFO"
-        try {
-            Install-Module $module -Force -Scope CurrentUser -AllowClobber -ErrorAction Stop
-            Write-Log "Successfully installed $module" "SUCCESS"
-        } catch {
-            Write-Log "Failed to install $module`: $($_.Exception.Message)" "ERROR"
-            return
-        }
-    } else {
-        Write-Log "Module $module is already installed" "INFO"
-    }
-    
-    Import-Module $module -Force -ErrorAction Stop
-    Write-Log "Imported module: $module" "SUCCESS"
-}
-
-# Connect to Microsoft Graph
-$RequiredScopes = @("Domain.ReadWrite.All", "Directory.ReadWrite.All")
-try {
-    Write-Log "Connecting to Microsoft Graph with scopes: $($RequiredScopes -join ', ')" "INFO"
-    
-    # Use ClientId/Secret authentication if provided, otherwise use interactive
+    # Connect to Microsoft Graph
     if ($ClientId -and $ClientSecret -and $TenantId) {
-        Write-Log "Using ClientId/ClientSecret authentication" "INFO"
         $SecureSecret = ConvertTo-SecureString $ClientSecret -AsPlainText -Force
         $ClientCredential = New-Object System.Management.Automation.PSCredential($ClientId, $SecureSecret)
-        Connect-MgGraph -TenantId $TenantId -ClientSecretCredential $ClientCredential -NoWelcome -ErrorAction Stop
+        Connect-MgGraph -TenantId $TenantId -ClientSecretCredential $ClientCredential -NoWelcome
     } else {
-        Write-Log "Using interactive authentication" "INFO"
-        Connect-MgGraph -Scopes $RequiredScopes -NoWelcome -ErrorAction Stop
+        Connect-MgGraph -Scopes @("Domain.ReadWrite.All") -NoWelcome
     }
     
-    $Context = Get-MgContext
-    Write-Log "Successfully connected to Microsoft Graph" "SUCCESS"
-    Write-Log "Tenant ID: $($Context.TenantId)" "INFO"
-    Write-Log "Account: $($Context.Account)" "INFO"
-    Write-Log "Scopes: $($Context.Scopes -join ', ')" "INFO"
-    
-} catch {
-    Write-Log "Failed to connect to Microsoft Graph: $($_.Exception.Message)" "ERROR"
-    return
-}
-
-# STEP 4: DOMAIN VALIDATION
-# ==========================
-Write-Log "=== STEP 4: DOMAIN VALIDATION ===" "INFO"
-
-try {
-    $Domain = Get-MgDomain -DomainId $DomainName -ErrorAction Stop
-    
-    if ($Domain.IsVerified -eq $false) {
-        Write-Log "Domain $DomainName is not verified in Entra ID" "ERROR"
-        Write-Log "You must verify domain ownership before setting up federation" "ERROR"
-        Disconnect-MgGraph
+    # Verify domain
+    $domain = Get-MgDomain -DomainId $DomainName
+    if (-not $domain.IsVerified) {
+        Write-Error "Domain $DomainName must be verified in Entra ID first"
         return
     }
     
-    Write-Log "Domain validation successful:" "SUCCESS"
-    Write-Log "  Name: $($Domain.Id)" "INFO"
-    Write-Log "  Is Verified: $($Domain.IsVerified)" "INFO"
-    Write-Log "  Current Auth Type: $($Domain.AuthenticationType)" "INFO"
-    Write-Log "  Is Default: $($Domain.IsDefault)" "INFO"
-    
-} catch {
-    Write-Log "Domain $DomainName not found in Entra ID: $($_.Exception.Message)" "ERROR"
-    Disconnect-MgGraph
-    return
-}
-
-# Check for existing federation configuration
-$ExistingFederation = $null
-try {
-    $ExistingFederation = Get-MgDomainFederationConfiguration -DomainId $DomainName -ErrorAction SilentlyContinue
-    if ($ExistingFederation) {
-        Write-Log "Existing federation configuration detected:" "WARNING"
-        Write-Log "  Federation ID: $($ExistingFederation.Id)" "INFO"
-        Write-Log "  Display Name: $($ExistingFederation.DisplayName)" "INFO"
-        Write-Log "  Issuer URI: $($ExistingFederation.IssuerUri)" "INFO"
-        
-        if (-not $Force) {
-            $confirm = Read-Host "Existing federation found. Update it? (y/N)"
-            if ($confirm -ne "y" -and $confirm -ne "Y") {
-                Write-Log "Operation cancelled by user" "INFO"
-                Disconnect-MgGraph
-                return
-            }
-        }
-        Write-Log "Will update existing federation configuration" "INFO"
-    } else {
-        Write-Log "No existing federation configuration found - will create new" "INFO"
-    }
-} catch {
-    Write-Log "Error checking existing federation: $($_.Exception.Message)" "WARNING"
-}
-
-# STEP 5: PREPARE FEDERATION PARAMETERS
-# ======================================
-Write-Log "=== STEP 5: PREPARE FEDERATION PARAMETERS ===" "INFO"
-
-$FederationParams = @{
-    DomainId = $DomainName
-    DisplayName = "$DomainName ADFS Federation"
-    IssuerUri = $ADFSConfig.IssuerUri
-    ActiveSignInUri = $ADFSConfig.ActiveSignInUri
-    PassiveSignInUri = $ADFSConfig.PassiveSignInUri
-    SignOutUri = $ADFSConfig.SignOutUri
-    MetadataExchangeUri = $ADFSConfig.MetadataExchangeUri
-    SigningCertificate = $ADFSConfig.SigningCertificate
-    PreferredAuthenticationProtocol = "wsFed"
-    FederatedIdpMfaBehavior = $MfaBehavior
-}
-
-Write-Log "Federation parameters prepared:" "INFO"
-foreach ($key in $FederationParams.Keys) {
-    if ($key -ne "SigningCertificate") {
-        Write-Log "  $key`: $($FederationParams[$key])" "INFO"
-    } else {
-        Write-Log "  $key`: [Base64 Certificate - $(($FederationParams[$key]).Length) characters]" "INFO"
-    }
-}
-
-# STEP 6: CREATE OR UPDATE FEDERATION
-# ====================================
-Write-Log "=== STEP 6: CREATE OR UPDATE FEDERATION ===" "INFO"
-
-if ($WhatIf) {
-    Write-Log "WHATIF MODE: Would perform the following action:" "INFO"
-    if ($ExistingFederation) {
-        Write-Log "  Update existing federation configuration for $DomainName" "INFO"
-        Write-Log "  Federation ID: $($ExistingFederation.Id)" "INFO"
-    } else {
-        Write-Log "  Create new federation configuration for $DomainName" "INFO"
-    }
-    Write-Log "WHATIF MODE: No changes will be made" "WARNING"
-    Disconnect-MgGraph
-    return
-}
-
-try {
-    if ($ExistingFederation) {
-        Write-Log "Updating existing federation configuration..." "INFO"
-        $FederationConfig = Update-MgDomainFederationConfiguration -DomainId $DomainName -InternalDomainFederationId $ExistingFederation.Id -BodyParameter $FederationParams -ErrorAction Stop
-        Write-Log "Federation configuration updated successfully!" "SUCCESS"
-    } else {
-        Write-Log "Creating new federation configuration..." "INFO"
-        $FederationConfig = New-MgDomainFederationConfiguration @FederationParams -ErrorAction Stop
-        Write-Log "Federation configuration created successfully!" "SUCCESS"
+    if ($WhatIf) {
+        Write-Host "WHATIF: Would create federation for $DomainName" -ForegroundColor Yellow
+        return
     }
     
-    # Display configuration summary
-    Write-Log "Federation Configuration Summary:" "INFO"
-    Write-Log "  ID: $($FederationConfig.Id)" "INFO"
-    Write-Log "  Display Name: $($FederationConfig.DisplayName)" "INFO"
-    Write-Log "  Issuer URI: $($FederationConfig.IssuerUri)" "INFO"
-    Write-Log "  Passive Sign-In URI: $($FederationConfig.PassiveSignInUri)" "INFO"
-    Write-Log "  MFA Behavior: $($FederationConfig.FederatedIdpMfaBehavior)" "INFO"
-    
-} catch {
-    Write-Log "Failed to create/update federation: $($_.Exception.Message)" "ERROR"
-    
-    # Enhanced error troubleshooting
-    $ErrorMessage = $_.Exception.Message
-    if ($ErrorMessage -like "*409*" -or $ErrorMessage -like "*already exists*" -or $ErrorMessage -like "*duplicate*") {
-        Write-Log "TROUBLESHOOTING: IssuerUri conflict detected" "WARNING"
-        Write-Log "The IssuerUri '$($ADFSConfig.IssuerUri)' may already be in use" "WARNING"
-        Write-Log "Consider using a unique IssuerUri like: http://$ADFSHostname/adfs/services/trust/$DomainName" "WARNING"
-    }
-    if ($ErrorMessage -like "*certificate*") {
-        Write-Log "TROUBLESHOOTING: Certificate issue detected" "WARNING"
-        Write-Log "Verify the certificate is valid and properly formatted" "WARNING"
-    }
-    if ($ErrorMessage -like "*permission*" -or $ErrorMessage -like "*unauthorized*") {
-        Write-Log "TROUBLESHOOTING: Permission issue detected" "WARNING"
-        Write-Log "Ensure your account has Domain.ReadWrite.All permissions" "WARNING"
-    }
-    
-    Disconnect-MgGraph
-    return
-}
-
-# STEP 7: VERIFY FEDERATION CONFIGURATION
-# ========================================
-Write-Log "=== STEP 7: VERIFY FEDERATION CONFIGURATION ===" "INFO"
-
-# Allow time for propagation
-Start-Sleep -Seconds 5
-
-try {
-    $UpdatedDomain = Get-MgDomain -DomainId $DomainName -ErrorAction Stop
-    Write-Log "Domain federation status verification:" "INFO"
-    Write-Log "  Authentication Type: $($UpdatedDomain.AuthenticationType)" "INFO"
-    
-    if ($UpdatedDomain.AuthenticationType -eq "Federated") {
-        Write-Log "✓ Federation is ACTIVE" "SUCCESS"
-    } else {
-        Write-Log "⚠ Domain is not federated. Status: $($UpdatedDomain.AuthenticationType)" "WARNING"
-        Write-Log "This may take a few minutes to propagate" "INFO"
-    }
-} catch {
-    Write-Log "Could not verify domain status: $($_.Exception.Message)" "WARNING"
-}
-
-# Get detailed federation configuration
-try {
-    $FinalFedConfig = Get-MgDomainFederationConfiguration -DomainId $DomainName -ErrorAction Stop
-    Write-Log "Detailed Federation Configuration:" "INFO"
-    Write-Log "  Display Name: $($FinalFedConfig.DisplayName)" "INFO"
-    Write-Log "  Issuer URI: $($FinalFedConfig.IssuerUri)" "INFO"
-    Write-Log "  Passive Sign-In URI: $($FinalFedConfig.PassiveSignInUri)" "INFO"
-    Write-Log "  Active Sign-In URI: $($FinalFedConfig.ActiveSignInUri)" "INFO"
-    Write-Log "  Sign-Out URI: $($FinalFedConfig.SignOutUri)" "INFO"
-    Write-Log "  Metadata Exchange URI: $($FinalFedConfig.MetadataExchangeUri)" "INFO"
-    Write-Log "  MFA Behavior: $($FinalFedConfig.FederatedIdpMfaBehavior)" "INFO"
-    Write-Log "  Protocol: $($FinalFedConfig.PreferredAuthenticationProtocol)" "INFO"
-} catch {
-    Write-Log "Could not retrieve federation details: $($_.Exception.Message)" "WARNING"
-}
-
-# STEP 8: POST-CONFIGURATION VALIDATION
-# ======================================
-Write-Log "=== STEP 8: POST-CONFIGURATION VALIDATION ===" "INFO"
-
-# Re-test ADFS endpoints
-Write-Log "Re-testing ADFS endpoints..." "INFO"
-foreach ($endpoint in $EndpointsToTest) {
+    # Create or update federation
     try {
-        $response = Invoke-WebRequest -Uri $endpoint -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-        Write-Log "✓ $endpoint - Still accessible" "SUCCESS"
+        $existing = Get-MgDomainFederationConfiguration -DomainId $DomainName -ErrorAction SilentlyContinue
+        if ($existing) {
+            Update-MgDomainFederationConfiguration -DomainId $DomainName -InternalDomainFederationId $existing.Id -BodyParameter $federationConfig
+            Write-Host "Updated existing federation configuration" -ForegroundColor Green
+        } else {
+            New-MgDomainFederationConfiguration @federationConfig
+            Write-Host "Created new federation configuration" -ForegroundColor Green
+        }
     } catch {
-        Write-Log "✗ $endpoint - Not accessible: $($_.Exception.Message)" "ERROR"
+        Write-Error "Federation setup failed: $($_.Exception.Message)"
+        return
     }
-}
-
-# Certificate validation
-try {
-    $CurrentCert = Get-AdfsCertificate -CertificateType "Token-Signing" | Where-Object {$_.IsPrimary -eq $true}
-    $CurrentCertBase64 = [System.Convert]::ToBase64String($CurrentCert.Certificate.RawData)
     
-    if ($CurrentCertBase64 -eq $CertificateBase64) {
-        Write-Log "✓ Certificate in ADFS matches federation configuration" "SUCCESS"
-    } else {
-        Write-Log "⚠ Certificate mismatch detected" "WARNING"
-        Write-Log "ADFS and Entra ID certificates don't match - federation may fail" "WARNING"
+    # Create ADFS Relying Party Trust for Microsoft 365 if it doesn't exist
+    try {
+        $existingRP = Get-AdfsRelyingPartyTrust -Name "Microsoft Office 365 Identity Platform" -ErrorAction SilentlyContinue
+        if (-not $existingRP) {
+            Write-Host "Creating Microsoft 365 Relying Party Trust..." -ForegroundColor Green
+            
+            # Basic Relying Party Trust for Microsoft 365
+            Add-AdfsRelyingPartyTrust `
+                -Name "Microsoft Office 365 Identity Platform" `
+                -MetadataUrl "https://nexus.microsoftonline-p.com/federationmetadata/2007-06/federationmetadata.xml" `
+                -MonitoringEnabled $true `
+                -AutoUpdateEnabled $true `
+                -IssuanceTransformRules @'
+@RuleTemplate = "LdapClaims"
+@RuleName = "Send UPN as Name ID"
+c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccountname", Issuer == "AD AUTHORITY"]
+=> issue(store = "Active Directory", types = ("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"), query = ";userPrincipalName;{0}", param = c.Value);
+
+@RuleTemplate = "PassThroughClaims"
+@RuleName = "Pass Through UPN"
+c:[Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"]
+=> issue(claim = c);
+'@
+            Write-Host "Created Microsoft 365 Relying Party Trust with basic claim rules" -ForegroundColor Green
+            Write-Host "You can now apply additional claim rules from Step 2 below" -ForegroundColor Cyan
+        } else {
+            Write-Host "Microsoft 365 Relying Party Trust already exists" -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Warning "Could not create Relying Party Trust: $($_.Exception.Message)"
+        Write-Host "You may need to create it manually or apply claim rules from Step 2" -ForegroundColor Yellow
     }
-} catch {
-    Write-Log "Could not validate ADFS certificate: $($_.Exception.Message)" "WARNING"
-}
-
-# STEP 9: CLEANUP AND SUMMARY
-# ============================
-Write-Log "=== STEP 9: CLEANUP AND SUMMARY ===" "INFO"
-
-# Disconnect from Microsoft Graph
-try {
+    
     Disconnect-MgGraph
-    Write-Log "Disconnected from Microsoft Graph" "INFO"
-} catch {
-    Write-Log "Error disconnecting from Graph: $($_.Exception.Message)" "WARNING"
+    Write-Host "Federation setup completed successfully!" -ForegroundColor Green
+    Write-Host "Next: Apply specific claim rules from Step 2 based on your AD configuration" -ForegroundColor Cyan
 }
-
-# Final summary
-Write-Log "=== FEDERATION SETUP COMPLETE ===" "SUCCESS"
-Write-Log "Domain: $DomainName" "INFO"
-Write-Log "ADFS Server: $ADFSHostname" "INFO"
-Write-Log "Federation ID: $($FederationConfig.Id)" "INFO"
-Write-Log "Certificate Expires: $ExpiryDate" "INFO"
-Write-Log "Log File: $LogFile" "INFO"
-
-Write-Log "NEXT STEPS:" "INFO"
-Write-Log "1. Test user authentication from external network" "INFO"
-Write-Log "2. Monitor ADFS logs: Event Viewer > Applications and Services Logs > AD FS > Admin" "INFO"
-Write-Log "3. Configure conditional access policies as needed" "INFO"
-Write-Log "4. Set up certificate auto-renewal monitoring" "INFO"
-Write-Log "5. Test federation with: https://login.microsoftonline.com/common/oauth2/authorize?client_id=00000002-0000-0000-c000-000000000000&response_type=id_token&redirect_uri=https://account.activedirectory.windowsazure.com/&response_mode=form_post&nonce=test&domain_hint=$DomainName" "INFO"
-
-Write-Log "TROUBLESHOOTING COMMANDS:" "INFO"
-Write-Log "# Check ADFS service: Get-Service -Name 'adfssrv'" "INFO"
-Write-Log "# View ADFS certificates: Get-AdfsCertificate" "INFO"
-Write-Log "# Check federation: Get-MgDomainFederationConfiguration -DomainId '$DomainName'" "INFO"
-Write-Log "# Remove federation: Update-MgDomain -DomainId '$DomainName' -AuthenticationType 'Managed'" "INFO"
-
-Write-Log "Federation setup completed successfully!" "SUCCESS"
-}
-
-# USAGE EXAMPLES:
-# ===============
-# Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com"
-# Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -WhatIf
-# Set-ADFSFederation -DomainName "contoso.com" -ADFSHostname "adfs.contoso.com" -Force
 ```
 
-**How to use this function:**
+**💡 Usage Examples for Step 1:**
 
-1. **Copy the entire function** above into PowerShell
-2. **Call the function** using any of these examples:
-   ```powershell
-   # Basic usage (DomainName and ADFSHostname are required)
-   Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com"
-   
-   # Preview what would happen
-   Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -WhatIf
-   
-   # Force execution without prompts
-   Set-ADFSFederation -DomainName "yourdomain.com" -ADFSHostname "adfs.yourdomain.com" -Force
-   Set-ADFSFederation -Force
-   ```
+**First**: Copy the entire `Set-ADFSFederation` function code block above and paste it into PowerShell on your **ADFS1** server.
+
+**Then run one of these commands:**
+```powershell
+# Basic usage (DomainName and ADFSHostname are required) - Uses delegated permissions
+Set-ADFSFederation -DomainName "domain.cc" -ADFSHostname "adfs.domain.cc"
+
+# Preview what would happen (recommended first run)
+Set-ADFSFederation -DomainName "domain.cc" -ADFSHostname "adfs.domain.cc" -WhatIf
+
+# Advanced: With service principal authentication (if you have ClientId/Secret setup)
+Set-ADFSFederation -DomainName "domain.cc" -ADFSHostname "adfs.domain.cc" -ClientId "your-client-id" -ClientSecret "your-client-secret" -TenantId "your-tenant-id"
+```
+
+---
+
+### **Step 2: Choose Your Claim Rule Scenario** 🎯
+**⏰ When**: Run this AFTER Step 1 completes successfully  
+**📍 Where**: Run on your **ADFS1** server (same as Step 1)  
+**👤 Who**: **Domain Admin** account (only local ADFS commands, no Entra ID access needed)  
+
+> **🔍 First, check your AD attributes to choose the right scenario:**
+> ```powershell
+> Get-ADUser -Identity "testuser" -Properties objectGUID, mS-DS-ConsistencyGuid
+> ```
+
+**Choose ONE of these scenarios based on your AD configuration:**
+
+#### **Scenario A: objectGUID Federation** (Legacy/Basic) 
+**⏰ When to use**: Your AD users have objectGUID populated (default for all AD users)  
+**✅ Best for**: Testing scenarios, quick proof-of-concept setups, environments without Entra Connect Sync  
+**💡 Consider using Scenario B instead**: Microsoft recommends mS-DS-ConsistencyGuid (Scenario B) as the modern approach. Use objectGUID for testing/lab environments.  
+
+```powershell
+# Basic objectGUID claim rule for Entra ID/Microsoft 365 federation - works with most AD environments
+# Use when: Your AD users have objectGUID populated (default for all AD users)
+
+# Add this claim rule to your Relying Party Trust
+$ClaimRuleSetObjectGUID = @'
+@RuleTemplate = "LdapClaims"
+@RuleName = "ObjectGUID to ImmutableID"
+c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccountname", Issuer == "AD AUTHORITY"]
+=> issue(store = "Active Directory", types = ("http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID"), query = ";objectGUID;{0}", param = c.Value);
+'@
+
+# Apply the rule (updates existing Relying Party Trust)
+Set-AdfsRelyingPartyTrust -TargetName "Microsoft Office 365 Identity Platform" -IssuanceTransformRules $ClaimRuleSetObjectGUID
+```
+
+#### **Scenario B: mS-DS-ConsistencyGuid Federation** (Recommended) 
+**⏰ When to use**: Your AD users have mS-DS-ConsistencyGuid populated (requires AD Connect or manual population)  
+**✅ Best for**: New setups, Microsoft's recommended approach, better for hybrid environments  
+
+```powershell
+# Modern mS-DS-ConsistencyGuid claim rule for Entra ID/Microsoft 365 - Microsoft's recommended approach
+# Use when: Your AD users have mS-DS-ConsistencyGuid populated (requires AD Connect or manual population)
+
+# Add this claim rule to your Relying Party Trust
+$ClaimRuleSetConsistencyGuid = @'
+@RuleTemplate = "LdapClaims"
+@RuleName = "ConsistencyGuid to ImmutableID"
+c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccountname", Issuer == "AD AUTHORITY"]
+=> issue(store = "Active Directory", types = ("http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID"), query = ";mS-DS-ConsistencyGuid;{0}", param = c.Value);
+'@
+
+# Apply the rule (updates existing Relying Party Trust)
+Set-AdfsRelyingPartyTrust -TargetName "Microsoft Office 365 Identity Platform" -IssuanceTransformRules $ClaimRuleSetConsistencyGuid
+```
+
+#### **Scenario C: objectGUID to mS-DS-ConsistencyGuid Conversion**
+**⏰ When to use**: **ONLY when modifying/migrating** existing federation from objectGUID to mS-DS-ConsistencyGuid  
+**✅ Best for**: Migration scenarios, transitioning between existing attribute types, **NOT for new setups**  
+
+```powershell
+# Convert objectGUID to mS-DS-ConsistencyGuid format during claim issuance
+# Use when: Migrating from objectGUID to mS-DS-ConsistencyGuid without AD changes
+
+# Add this claim rule to your Relying Party Trust
+$ClaimRuleSetConversion = @'
+@RuleTemplate = "LdapClaims"
+@RuleName = "ObjectGUID to ConsistencyGuid Format"
+c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccountname", Issuer == "AD AUTHORITY"]
+=> issue(store = "Active Directory", types = ("http://schemas.microsoft.com/LiveID/Federation/2008/05/ImmutableID"), query = ";objectGUID;{0}", param = c.Value);
+
+@RuleTemplate = "PassThroughClaims"
+@RuleName = "Pass Through UPN"
+c:[Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"]
+=> issue(claim = c);
+'@
+
+# Apply the rule (updates existing Relying Party Trust)
+Set-AdfsRelyingPartyTrust -TargetName "Microsoft Office 365 Identity Platform" -IssuanceTransformRules $ClaimRuleSetConversion
+```
+
+---
+
+### **Step 3: Test Federation** ✅
+**⏰ When**: Run this AFTER Step 2 completes successfully  
+**📍 Where**: From any computer with internet access  
+**👤 Who**: **Test user account** in your domain (regular user, not admin)  
+
+```powershell
+# 1. Verify ADFS configuration
+Get-AdfsRelyingPartyTrust -Name "Microsoft Office 365 Identity Platform"
+
+# 2. Test federation endpoint accessibility
+Test-NetConnection -ComputerName "adfs.domain.cc" -Port 443
+
+# 3. Test user authentication (replace with your domain)
+# Open browser and navigate to:
+# https://login.microsoftonline.com/domain.cc
+```
+
+---
+
+## 🚀 Complete Setup Summary
+
+### **Quick Reference - Do This In Order:**
+
+1. **✅ Infrastructure Complete**: All 6 servers deployed and configured
+2. **⚡ Step 1**: Run `Set-ADFSFederation` on ADFS1 server 
+3. **🎯 Step 2**: Choose and apply ONE claim rule scenario (A, B, or C)
+4. **✅ Step 3**: Test federation with browser authentication
+5. **📊 Optional**: Run ADFS Report (see below) for health verification
+
+### **Troubleshooting Commands:**
+```powershell
+# Check ADFS service status
+Get-Service -Name "adfssrv"
+
+# View federation configuration
+Get-MgDomainFederationConfiguration -DomainId "domain.cc"
+
+# Check claim rules
+Get-AdfsRelyingPartyTrust -Name "Microsoft Office 365 Identity Platform" | Select-Object IssuanceTransformRules
+
+# Remove federation if needed
+Update-MgDomain -DomainId "domain.cc" -AuthenticationType "Managed"
+```
 ---
 
 ### 🚀 **ADFS Report**
