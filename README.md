@@ -553,6 +553,26 @@ Set-ADFSFederation -DomainName "domain.cc" -ADFSHostname "adfs.domain.cc" -Clien
 > Get-ADUser -Identity "testuser" -Properties objectGUID, mS-DS-ConsistencyGuid
 > ```
 
+> **📋 Need to populate mS-DS-ConsistencyGuid for Scenario B?**
+> 
+> **Microsoft Entra Connect Sync Setup**: If your users don't have mS-DS-ConsistencyGuid populated, you'll need to set up Entra Connect Sync first.
+> 
+> **Official Guide**: [Plan for Azure AD Connect - Design concepts](https://learn.microsoft.com/en-us/entra/identity/hybrid/connect/plan-connect-design-concepts)
+> 
+> **Quick Steps**:
+> 1. Deploy Entra Connect on a domain-joined server (use the optional EntraConnect VM from this guide)
+> 2. Run the Entra Connect wizard and choose "Customize synchronization options"
+> 3. Select "mS-DS-ConsistencyGuid" as the source anchor during setup
+> 4. Complete initial sync (this populates mS-DS-ConsistencyGuid for all users)
+> 5. Return here and use Scenario B for federation
+> 
+> **⚠️ Important: Manual ADFS Management**
+> 
+> **This guide manages ADFS independently from Entra Connect**. When you use Entra Connect to manage ADFS, it automatically updates claim rules to match the sourceAnchor. However, since we're configuring ADFS separately, you must manually configure the claim rules below to ensure the ImmutableID claim is consistent with your Entra Connect sourceAnchor setting.
+> 
+> **Impact**: If you later deploy Entra Connect with ADFS management enabled, it may overwrite these manual claim rules. Choose your claim rules (Scenarios A, B, or C below) to match your intended Entra Connect sourceAnchor configuration.
+
+
 **Choose ONE of these scenarios based on your AD configuration:**
 
 #### **Scenario A: objectGUID Federation** (Legacy/Basic) 
