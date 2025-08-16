@@ -441,18 +441,18 @@ function Set-ADFSFederation {
     
     # Build federation configuration
     $federationConfig = @{
-        DomainId = $DomainName
-        DisplayName = "$DomainName ADFS Federation"
-        IssuerUri = "http://$ADFSHostname/adfs/services/trust"
-        ActiveSignInUri = "https://$ADFSHostname/adfs/services/trust/2005/usernamemixed"
-        PassiveSignInUri = "https://$ADFSHostname/adfs/ls/"
-        SignOutUri = "https://$ADFSHostname/adfs/ls/?wa=wsignout1.0"
-        MetadataExchangeUri = "https://$ADFSHostname/adfs/services/trust/mex"
-        SigningCertificate = $certBase64
+        DomainId                        = $DomainName
+        DisplayName                     = "$DomainName ADFS Federation"
+        IssuerUri                       = "http://$ADFSHostname/adfs/services/trust"
+        ActiveSignInUri                 = "https://$ADFSHostname/adfs/services/trust/2005/usernamemixed"
+        PassiveSignInUri                = "https://$ADFSHostname/adfs/ls/"
+        SignOutUri                      = "https://$ADFSHostname/adfs/ls/?wa=wsignout1.0"
+        MetadataExchangeUri             = "https://$ADFSHostname/adfs/services/trust/mex"
+        SigningCertificate              = $certBase64
         PreferredAuthenticationProtocol = "wsFed"
-        FederatedIdpMfaBehavior = "acceptIfMfaDoneByFederatedIdp"
+        FederatedIdpMfaBehavior         = "acceptIfMfaDoneByFederatedIdp"
     }
-    
+        
     # Connect to Microsoft Graph
     if ($ClientId -and $ClientSecret -and $TenantId) {
         $SecureSecret = ConvertTo-SecureString $ClientSecret -AsPlainText -Force
