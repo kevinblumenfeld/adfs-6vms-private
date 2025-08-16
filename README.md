@@ -495,23 +495,20 @@ function Set-ADFSFederation {
         if (-not $existingRP) {
             Write-Host "Creating Microsoft 365 Relying Party Trust..." -ForegroundColor Green
             
-            # Basic Relying Party Trust for Microsoft 365
-            Add-AdfsRelyingPartyTrust `
-                -Name "Microsoft Office 365 Identity Platform" `
-                -MetadataUrl "https://nexus.microsoftonline-p.com/federationmetadata/2007-06/federationmetadata.xml" `
-                -MonitoringEnabled $true `
-                -AutoUpdateEnabled $true `
-                -IssuanceTransformRules @'
-@RuleTemplate = "LdapClaims"
-@RuleName = "Send UPN as Name ID"
-c:[Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/windowsaccountname", Issuer == "AD AUTHORITY"]
-=> issue(store = "Active Directory", types = ("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"), query = ";userPrincipalName;{0}", param = c.Value);
-
+            # Basic Relying Party Trust for Microsoft 365 (without specific claim rules - those come in Step 2)
+            $rpTrustSplat = @{
+                Name                   = "Microsoft Office 365 Identity Platform"
+                MetadataUrl            = "https://nexus.microsoftonline-p.com/federationmetadata/2007-06/federationmetadata.xml"
+                MonitoringEnabled      = $true
+                AutoUpdateEnabled      = $true
+                IssuanceTransformRules = @'
 @RuleTemplate = "PassThroughClaims"
 @RuleName = "Pass Through UPN"
 c:[Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/upn"]
 => issue(claim = c);
 '@
+            }
+            Add-AdfsRelyingPartyTrust @rpTrustSplat
             Write-Host "Created Microsoft 365 Relying Party Trust with basic claim rules" -ForegroundColor Green
             Write-Host "You can now apply additional claim rules from Step 2 below" -ForegroundColor Cyan
         } else {
